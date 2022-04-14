@@ -9,6 +9,7 @@
 #include <usbcfg.h>
 #include <main.h>
 #include <motors.h>
+#include <proximity.h>
 #include <camera/po8030.h>
 #include <chprintf.h>
 
@@ -50,6 +51,12 @@ int main(void)
 	po8030_start();
 	//inits the motors
 	motors_init();
+
+	//inits the proximity sensors
+	proximity_start();
+
+	//calibrate proximity sensors
+	calibrate_ir();
 
 	//stars the threads for the pi regulator and the processing of the image
 	pi_regulator_start();
