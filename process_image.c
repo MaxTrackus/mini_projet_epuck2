@@ -5,12 +5,44 @@
 
 #include <main.h>
 #include <camera/po8030.h>
+#include <leds.h>
+#include <motors.h>
+#include <selector.h>
 
 #include <process_image.h>
 
 
 static float distance_cm = 0;
 static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//middle
+static uint8_t staticFoundLine = 0;
+static uint8_t alignementMode = 0;
+
+#define MAX_SPIN_ANGLE		360
+
+void spin_angle(uint16_t angle_in_degree) {
+	uint16_t angle = angle_in_degree*1.82;
+	if(angle_in_degree > MAX_SPIN_ANGLE) {
+		angle = 360;
+	}
+
+	// unit of positions are steps
+	// We turn the motors in different directions to spin the robot until the left motor
+	//   has made enough steps to have the robot at the given angle. The right motor isn't
+	//   monitored to stop the motors at the right time
+	int32_t initialLeftMotorPos = left_motor_get_pos();
+	int32_t goalLeftMotorPos = initialLeftMotorPos + (int32_t)((25/9)*angle);
+	left_motor_set_speed(100);
+	right_motor_set_speed(-100);
+	bool goalReached = false;
+	while (goalReached == false) {
+		// wait. the robot must wait or the hand must be given to another thread
+		if(left_motor_get_pos() >= goalLeftMotorPos) {
+			break;
+		}
+	}
+	left_motor_set_speed(0);
+	right_motor_set_speed(0);
+}
 
 //semaphore
 static BSEMAPHORE_DECL(image_ready_sem, TRUE);
@@ -86,9 +118,11 @@ uint16_t extract_line_width(uint8_t *buffer){
 		begin = 0;
 		end = 0;
 		width = last_width;
+		staticFoundLine = 0;
 	}else{
 		last_width = width = (end - begin);
 		line_position = (begin + end)/2; //gives the line position.
+		staticFoundLine = 1;
 	}
 
 	//sets a maximum width or returns the measured width
@@ -140,11 +174,11 @@ static THD_FUNCTION(ProcessImage, arg) {
 		//gets the pointer to the array filled with the last image in RGB565    
 		img_buff_ptr = dcmi_get_last_image_ptr();
 
-		//Extracts only the red pixels
+		//Extracts only the green pixels
 		for(uint16_t i = 0 ; i < (2 * IMAGE_BUFFER_SIZE) ; i+=2){
-			//extracts first 5bits of the first byte
-			//takes nothing from the second byte
-			image[i/2] = (uint8_t)img_buff_ptr[i]&0xF8;
+			//extracts first 3bits of the first byte
+			//extracts last 3bits of the second byte and combine
+			image[i/2] = (uint8_t)(((img_buff_ptr[i]&0x07) << 3)|((img_buff_ptr[i+1]&0xE0) >> 5));
 		}
 
 		//search for a line in the image and gets its width in pixels
@@ -161,7 +195,29 @@ static THD_FUNCTION(ProcessImage, arg) {
 		}
 		//invert the bool
 		send_to_computer = !send_to_computer;
+
+		if((get_selector() == 1) && (alignementMode == 0)) {
+			set_led(LED3, 1);
+			spin_angle(20);
+
+			if(staticFoundLine == 1) {
+				set_led(LED1, 1);
+				alignementMode = 1;
+			}
+			else {
+				set_led(LED1, 0);
+			}
+
+			chThdSleepMilliseconds(2000);
+		}
+		else {
+			set_led(LED3, 0);
+		}
     }
+}
+
+uint8_t get_staticAlignementMode(void) {
+	return alignementMode;
 }
 
 float get_distance_cm(void){
