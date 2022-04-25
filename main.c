@@ -9,12 +9,12 @@
 #include <usbcfg.h>
 #include <main.h>
 #include <motors.h>
-#include <proximity.h>
 #include <camera/po8030.h>
 #include <chprintf.h>
 
 #include <pi_regulator.h>
 #include <process_image.h>
+#include <sensors.h>
 
 void SendUint8ToComputer(uint8_t* data, uint16_t size) 
 {

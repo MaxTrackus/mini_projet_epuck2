@@ -2,11 +2,12 @@
 #include "hal.h"
 #include <chprintf.h>
 #include <usbcfg.h>
+#include <proximity.h>
 
 #include <main.h>
 #include <camera/po8030.h>
 
-#include <process_image.h>
+#include <sensors.h>
 
 
 static float distance_cm = 0;
