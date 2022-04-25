@@ -5,10 +5,22 @@
 #include <proximity.h>
 
 #include <main.h>
-#include <camera/po8030.h>
+#include <camera/po8030.h> // to remove once cleaned
 
 #include <sensors.h>
 
+// GPIO_C id IR sensor
+#define PROX_FRONT_RIGHT_17 			2 // IR 1
+#define PROX_FRONT_LEFT_17				1 // IR 8
+#define PROX_FRONT_RIGHT_49 			3 // IR 2
+#define PROX_FRONT_LEFT_49				0 // IR 7
+#define PROX_RIGHT						4 // IR 3
+#define PROX_BACK_RIGHT 				5 // IR 4
+
+
+// GPIO_B id IR sensor
+#define PROX_LEFT						0 // IR 6 
+#define PROX_BACK_LEFT					1 // IR 5 
 
 static float distance_cm = 0;
 static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//middle
@@ -98,6 +110,28 @@ uint16_t extract_line_width(uint8_t *buffer){
 	}else{
 		return width;
 	}
+}
+
+static THD_WORKING_AREA(waReadIR, 256); //???? How to know the size to allocate ?
+static THD_FUNCTION(ReadIR, arg) {
+
+    chRegSetThreadName(__FUNCTION__);
+    (void)arg;
+
+	//Takes pixels 0 to IMAGE_BUFFER_SIZE of the line 10 + 11 (minimum 2 lines because reasons)
+	po8030_advanced_config(FORMAT_RGB565, 0, 10, IMAGE_BUFFER_SIZE, 2, SUBSAMPLING_X1, SUBSAMPLING_X1);
+	dcmi_enable_double_buffering();
+	dcmi_set_capture_mode(CAPTURE_ONE_SHOT);
+	dcmi_prepare();
+
+    while(1){
+        //starts a capture
+		dcmi_capture_start();
+		//waits for the capture to be done
+		wait_image_ready();
+		//signals an image has been captured
+		chBSemSignal(&image_ready_sem);
+    }
 }
 
 static THD_WORKING_AREA(waCaptureImage, 256);
