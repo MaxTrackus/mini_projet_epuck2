@@ -56,6 +56,8 @@ int main(void)
 	// pi_regulator_start();
 	// process_image_start();
 
+    read_IR_start();
+
     /* Infinite loop. */
     while (1) {
     	//waits 1 second
