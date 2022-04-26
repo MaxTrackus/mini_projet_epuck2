@@ -52,12 +52,6 @@ int main(void)
 	//inits the motors
 	motors_init();
 
-	//inits the proximity sensors
-	proximity_start();
-
-	//calibrate proximity sensors
-	calibrate_ir();
-
 	//stars the threads for the pi regulator and the processing of the image
 	pi_regulator_start();
 	process_image_start();

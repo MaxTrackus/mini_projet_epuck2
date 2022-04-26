@@ -3,11 +3,14 @@
 #include <chprintf.h>
 #include <usbcfg.h>
 #include <proximity.h>
+#include <leds.h>
 
 #include <main.h>
 #include <camera/po8030.h> // to remove once cleaned
 
 #include <sensors.h>
+
+#define NUM_LEDS						8
 
 // GPIO_C id IR sensor
 #define PROX_FRONT_RIGHT_17 			2 // IR 1
@@ -112,11 +115,54 @@ uint16_t extract_line_width(uint8_t *buffer){
 	}
 }
 
+void set_led_with_int(unsigned int led_int_number, unsigned int value) {
+	
+	switch (led_int_number) {
+		case 1: 
+			set_led(LED1, 1);
+			break;
+		case 2:
+			set_rgb_led(LED2, 255, 0, 0);
+			break;
+		case 3:
+			set_led(LED3, 1);
+			break;
+		case 4:
+			set_rgb_led(LED4, 255, 0, 0);
+			break; ///
+		case 5: 
+			set_led(LED5, 1);
+			break;
+		case 6:
+			set_rgb_led(LED6, 255, 0, 0);
+			break;
+		case 7:
+			set_led(LED7, 1);
+			break;
+		case 8:
+			set_rgb_led(LED8, 255, 0, 0);
+			break; ///
+		default:
+			break;
+	}
+	
+}
+
+void set_rgb_led(rgb_led_name_t led_number, uint8_t red_val, uint8_t green_val, uint8_t blue_val);
+
+
+
 static THD_WORKING_AREA(waReadIR, 256); //???? How to know the size to allocate ?
 static THD_FUNCTION(ReadIR, arg) {
 
     chRegSetThreadName(__FUNCTION__);
     (void)arg;
+
+    //inits the proximity sensors
+	proximity_start();
+
+	//calibrate proximity sensors
+	calibrate_ir();
 
 	//Takes pixels 0 to IMAGE_BUFFER_SIZE of the line 10 + 11 (minimum 2 lines because reasons)
 	po8030_advanced_config(FORMAT_RGB565, 0, 10, IMAGE_BUFFER_SIZE, 2, SUBSAMPLING_X1, SUBSAMPLING_X1);
@@ -125,6 +171,19 @@ static THD_FUNCTION(ReadIR, arg) {
 	dcmi_prepare();
 
     while(1){
+        
+        int prox_right_value = get_prox(PROX_RIGHT);
+
+        for (int i = 0; i < NUM_LEDS; i++) {
+
+
+
+        	if (prox_right_value == i) {
+        		set_led(i,1)
+        	}
+
+        }
+
         //starts a capture
 		dcmi_capture_start();
 		//waits for the capture to be done
