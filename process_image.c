@@ -198,7 +198,6 @@ static THD_FUNCTION(ProcessImage, arg) {
 
 		if((get_selector() == 1) && (alignementMode == 0)) {
 			set_led(LED3, 1);
-			spin_angle(20);
 
 			if(staticFoundLine == 1) {
 				set_led(LED1, 1);
@@ -206,6 +205,7 @@ static THD_FUNCTION(ProcessImage, arg) {
 			}
 			else {
 				set_led(LED1, 0);
+				spin_angle(20);
 			}
 
 			chThdSleepMilliseconds(2000);
