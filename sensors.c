@@ -195,10 +195,15 @@ static THD_FUNCTION(ReadIR, arg) {
 	calibrate_ir();
 
     while(1){
+
         
         unsigned int prox_right_value = get_prox(PROX_RIGHT);
 
         set_led_with_int(prox_right_value);
+
+        wait();
+
+        clear_led_with_int(prox_right_value);
 
     }
 }
@@ -278,6 +283,14 @@ static THD_FUNCTION(ReadIR, arg) {
 //
 void read_IR_start(void) {
 	chThdCreateStatic(waReadIR, sizeof(waReadIR), NORMALPRIO, ReadIR, NULL);
+}
+
+void wait(void) {
+	int i = 0;
+
+	while (i<8400000) {
+		i++;
+	}
 }
 //
 //void process_image_start(void){

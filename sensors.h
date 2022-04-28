@@ -8,4 +8,6 @@ void set_led_with_int(unsigned int led_int_number);
 void clear_led_with_int(unsigned int led_int_number)
 void read_IR_start(void);
 
+void wait(void);
+
 #endif /* SENSORS_H */
