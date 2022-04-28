@@ -13,18 +13,20 @@
 
 #define NUM_LEDS						8
 
+#define MAX_PROX_VALUE					4.095
+
 // GPIO_C id IR sensor
-#define PROX_FRONT_RIGHT_17 			2 // IR 1
-#define PROX_FRONT_LEFT_17				1 // IR 8
-#define PROX_FRONT_RIGHT_49 			3 // IR 2
-#define PROX_FRONT_LEFT_49				0 // IR 7
-#define PROX_RIGHT						4 // IR 3
-#define PROX_BACK_RIGHT 				5 // IR 4
+#define PROX_FRONT_RIGHT_17 			0 // IR 1
+#define PROX_FRONT_LEFT_17				7 // IR 8
+#define PROX_FRONT_RIGHT_49 			1 // IR 2
+#define PROX_FRONT_LEFT_49				6 // IR 7
+#define PROX_RIGHT						2 // IR 3
+#define PROX_BACK_RIGHT 				3 // IR 4
 
 
 // GPIO_B id IR sensor
-#define PROX_LEFT						0 // IR 6 
-#define PROX_BACK_LEFT					1 // IR 5 
+#define PROX_LEFT						5 // IR 6
+#define PROX_BACK_LEFT					4 // IR 5
 
 //static float distance_cm = 0;
 //static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//middle
@@ -156,25 +158,25 @@ void set_led_with_int(unsigned int led_int_number) {
 			set_led(LED1, 1);
 			break;
 		case 2:
-			set_rgb_led(LED2, 255, 0, 0);
+			set_rgb_led(LED2, 10, 0, 0);
 			break;
 		case 3:
 			set_led(LED3, 1);
 			break;
 		case 4:
-			set_rgb_led(LED4, 255, 0, 0);
+			set_rgb_led(LED4, 10, 0, 0);
 			break; ///
 		case 5: 
 			set_led(LED5, 1);
 			break;
 		case 6:
-			set_rgb_led(LED6, 255, 0, 0);
+			set_rgb_led(LED6, 10, 0, 0);
 			break;
 		case 7:
 			set_led(LED7, 1);
 			break;
 		case 8:
-			set_rgb_led(LED8, 255, 0, 0);
+			set_rgb_led(LED8, 10, 0, 0);
 			break; ///
 		default:
 			break;
@@ -189,22 +191,20 @@ static THD_FUNCTION(ReadIR, arg) {
     chRegSetThreadName(__FUNCTION__);
     (void)arg;
 
-    //inits the proximity sensors
-	proximity_start();
-
-	//calibrate proximity sensors
-	calibrate_ir();
-
     while(1){
 
         
-        unsigned int prox_right_value = get_prox(PROX_RIGHT);
+        volatile unsigned int prox_right_value = ((float)get_calibrated_prox(PROX_RIGHT)/(MAX_PROX_VALUE))*0.007;
 
-        set_led_with_int(prox_right_value);
+//        /MAX_PROX_VALUE)*(NUM_LEDS-1);
+
+        set_led_with_int(4);
 
         wait(8400000);
 
         clear_led_with_int(prox_right_value);
+
+        wait(8400000);
 
     }
 }

@@ -64,6 +64,12 @@ int main(void)
 	// pi_regulator_start();
 	// process_image_start();
 
+    //inits the proximity sensors
+    proximity_start();
+
+    //calibrate proximity sensors
+    calibrate_ir();
+
     read_IR_start();
 
     /* Infinite loop. */
