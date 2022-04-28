@@ -4,6 +4,7 @@
 #include <usbcfg.h>
 #include <sensors/proximity.h>
 #include <leds.h>
+#include <epuck1x/utility/utility.h>
 
 #include <main.h>
 #include <camera/po8030.h> // to remove once cleaned
@@ -201,7 +202,7 @@ static THD_FUNCTION(ReadIR, arg) {
 
         set_led_with_int(prox_right_value);
 
-        wait();
+        wait(8400000);
 
         clear_led_with_int(prox_right_value);
 
@@ -285,13 +286,6 @@ void read_IR_start(void) {
 	chThdCreateStatic(waReadIR, sizeof(waReadIR), NORMALPRIO, ReadIR, NULL);
 }
 
-void wait(void) {
-	int i = 0;
-
-	while (i<8400000) {
-		i++;
-	}
-}
 //
 //void process_image_start(void){
 //	chThdCreateStatic(waProcessImage, sizeof(waProcessImage), NORMALPRIO, ProcessImage, NULL);
