@@ -11,10 +11,15 @@
 #include <motors.h>
 #include <camera/po8030.h>
 #include <chprintf.h>
+#include <msgbus/messagebus.h>
 
 #include <pi_regulator.h>
 #include <process_image.h>
 #include <sensors.h>
+
+messagebus_t bus;
+MUTEX_DECL(bus_lock);
+CONDVAR_DECL(bus_condvar);
 
 void SendUint8ToComputer(uint8_t* data, uint16_t size) 
 {
@@ -41,6 +46,9 @@ int main(void)
     halInit();
     chSysInit();
     mpu_init();
+
+    /** Inits the Inter Process Communication bus. */
+    messagebus_init(&bus, &bus_lock, &bus_condvar);
 
     //starts the serial communication
     serial_start();
