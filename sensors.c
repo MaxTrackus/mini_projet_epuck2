@@ -198,7 +198,7 @@ static THD_FUNCTION(ReadIR, arg) {
 
 //        /MAX_PROX_VALUE)*(NUM_LEDS-1);
 
-        set_led_with_int(4);
+        set_led_with_int(prox_right_value);
 
         wait(8400000);
 

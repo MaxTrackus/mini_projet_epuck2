@@ -12,6 +12,7 @@
 #include <camera/po8030.h>
 #include <chprintf.h>
 #include <msgbus/messagebus.h>
+#include <spi_comm.h>
 
 #include <pi_regulator.h>
 #include <process_image.h>
@@ -63,6 +64,9 @@ int main(void)
 	// //stars the threads for the pi regulator and the processing of the image
 	// pi_regulator_start();
 	// process_image_start();
+
+    //start SPI communication
+    spi_comm_start();
 
     //inits the proximity sensors
     proximity_start();
