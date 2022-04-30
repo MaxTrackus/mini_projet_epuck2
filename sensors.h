@@ -6,6 +6,7 @@
 //void process_image_start(void);
 void set_led_with_int(unsigned int led_int_number);
 void clear_led_with_int(unsigned int led_int_number);
+void test_prox_with_leds(unsigned int sensor_number);
 void read_IR_start(void);
 
 #endif /* SENSORS_H */

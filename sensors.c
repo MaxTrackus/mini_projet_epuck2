@@ -193,20 +193,23 @@ static THD_FUNCTION(ReadIR, arg) {
 
     while(1){
 
-        
-        volatile unsigned int prox_right_value = ((float)get_calibrated_prox(PROX_RIGHT)/(MAX_PROX_VALUE))*0.007;
-
-//        /MAX_PROX_VALUE)*(NUM_LEDS-1);
-
-        set_led_with_int(prox_right_value);
-
-        wait(8400000);
-
-        clear_led_with_int(prox_right_value);
-
-        wait(8400000);
+//    	test_prox_with_leds(PROX_RIGHT);
+    	test_prox_with_leds(PROX_LEFT);
 
     }
+}
+
+void test_prox_with_leds(unsigned int sensor_number) {
+
+	volatile unsigned int prox_right_value = ((float)get_calibrated_prox(sensor_number)/(MAX_PROX_VALUE))*0.008; // Normalize proximity value to int of max value <= 9
+
+	set_led_with_int(prox_right_value);
+
+	wait(84000);
+
+	clear_led_with_int(prox_right_value);
+
+	// wait(84000);
 }
 //
 //static THD_WORKING_AREA(waCaptureImage, 256);
