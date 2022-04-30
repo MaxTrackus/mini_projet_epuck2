@@ -4,6 +4,7 @@
 #include <usbcfg.h>
 #include <sensors/proximity.h>
 #include <leds.h>
+#include <motors.h>
 #include <epuck1x/utility/utility.h>
 
 #include <main.h>
@@ -191,11 +192,23 @@ static THD_FUNCTION(ReadIR, arg) {
     chRegSetThreadName(__FUNCTION__);
     (void)arg;
 
+    systime_t time;
+
+    int16_t speed = 200;
+
     while(1){
 
-//    	test_prox_with_leds(PROX_RIGHT);
-    	test_prox_with_leds(PROX_LEFT);
+    	if (get_calibrated_prox(PROX_FRONT_RIGHT_17) > 100) {
+    		speed = 0;
+    	}
 
+    	right_motor_set_speed(speed);
+    	left_motor_set_speed(speed);
+
+    	// test_prox_with_leds(PROX_LEFT);
+
+    	//100Hz
+        chThdSleepUntilWindowed(time, time + MS2ST(10));
     }
 }
 
