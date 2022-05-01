@@ -8,41 +8,40 @@
 #include <leds.h>
 #include <motors.h>
 #include <selector.h>
+#include <move.h>
 
 #include <process_image.h>
 
 
 static float distance_cm = 0;
 static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//middle
-static uint8_t staticFoundLine = 0;
-static uint8_t alignementMode = 0;
 
-#define MAX_SPIN_ANGLE		360
+static bool staticFoundLine = false;
 
-void spin_angle(uint16_t angle_in_degree) {
-	uint16_t angle = angle_in_degree*1.82;
-	if(angle_in_degree > MAX_SPIN_ANGLE) {
-		angle = 360;
-	}
-
-	// unit of positions are steps
-	// We turn the motors in different directions to spin the robot until the left motor
-	//   has made enough steps to have the robot at the given angle. The right motor isn't
-	//   monitored to stop the motors at the right time
-	int32_t initialLeftMotorPos = left_motor_get_pos();
-	int32_t goalLeftMotorPos = initialLeftMotorPos + (int32_t)((25/9)*angle);
-	left_motor_set_speed(100);
-	right_motor_set_speed(-100);
-	bool goalReached = false;
-	while (goalReached == false) {
-		// wait. the robot must wait or the hand must be given to another thread
-		if(left_motor_get_pos() >= goalLeftMotorPos) {
-			break;
-		}
-	}
-	left_motor_set_speed(0);
-	right_motor_set_speed(0);
-}
+//void spin_angle(uint16_t angle_in_degree) {
+//	uint16_t angle = angle_in_degree*1.82;
+//	if(angle_in_degree > MAX_SPIN_ANGLE) {
+//		angle = 360;
+//	}
+//
+//	// unit of positions are steps
+//	// We turn the motors in different directions to spin the robot until the left motor
+//	//   has made enough steps to have the robot at the given angle. The right motor isn't
+//	//   monitored to stop the motors at the right time
+//	int32_t initialLeftMotorPos = left_motor_get_pos();
+//	int32_t goalLeftMotorPos = initialLeftMotorPos + (int32_t)((25/9)*angle);
+//	left_motor_set_speed(100);
+//	right_motor_set_speed(-100);
+//	bool goalReached = false;
+//	while (goalReached == false) {
+//		// wait. the robot must wait or the hand must be given to another thread
+//		if(left_motor_get_pos() >= goalLeftMotorPos) {
+//			break;
+//		}
+//	}
+//	left_motor_set_speed(0);
+//	right_motor_set_speed(0);
+//}
 
 //semaphore
 static BSEMAPHORE_DECL(image_ready_sem, TRUE);
@@ -118,11 +117,11 @@ uint16_t extract_line_width(uint8_t *buffer){
 		begin = 0;
 		end = 0;
 		width = last_width;
-		staticFoundLine = 0;
+		staticFoundLine = false;
 	}else{
 		last_width = width = (end - begin);
 		line_position = (begin + end)/2; //gives the line position.
-		staticFoundLine = 1;
+		staticFoundLine = true;
 	}
 
 	//sets a maximum width or returns the measured width
@@ -146,7 +145,7 @@ static THD_FUNCTION(CaptureImage, arg) {
 	dcmi_prepare();
 
     while(1){
-        //starts a capture
+		//starts a capture
 		dcmi_capture_start();
 		//waits for the capture to be done
 		wait_image_ready();
@@ -196,28 +195,10 @@ static THD_FUNCTION(ProcessImage, arg) {
 		//invert the bool
 		send_to_computer = !send_to_computer;
 
-		if((get_selector() == 1) && (alignementMode == 0)) {
-			set_led(LED3, 1);
-
-			if(staticFoundLine == 1) {
-				set_led(LED1, 1);
-				alignementMode = 1;
-			}
-			else {
-				set_led(LED1, 0);
-				spin_angle(20);
-			}
-
-			chThdSleepMilliseconds(2000);
-		}
-		else {
-			set_led(LED3, 0);
+		if(get_selector() == 1) {
+			spin_angle_degree(90);
 		}
     }
-}
-
-uint8_t get_staticAlignementMode(void) {
-	return alignementMode;
 }
 
 float get_distance_cm(void){
