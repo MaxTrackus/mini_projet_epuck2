@@ -8,13 +8,18 @@
 #include <epuck1x/utility/utility.h>
 
 #include <main.h>
-#include <camera/po8030.h> // to remove once cleaned
+//#include <camera/po8030.h> // to remove once cleaned
 
 #include <sensors.h>
+
 
 #define NUM_LEDS						8
 
 #define MAX_PROX_VALUE					4.095
+
+#define MAX_SPEED						200
+
+#define PROX_DETECTION_THRESHOLD		100
 
 // GPIO_C id IR sensor
 #define PROX_FRONT_RIGHT_17 			0 // IR 1
@@ -185,6 +190,32 @@ void set_led_with_int(unsigned int led_int_number) {
 
 }
 
+void obstacles_avoidance_algorithm(void) {
+
+	if ((get_calibrated_prox(PROX_FRONT_RIGHT_49) > PROX_DETECTION_THRESHOLD) || (get_calibrated_prox(PROX_FRONT_LEFT_49) > PROX_DETECTION_THRESHOLD)) {
+		rotate_left(MAX_SPEED);
+	} else if ((get_calibrated_prox(PROX_FRONT_RIGHT_49) > PROX_DETECTION_THRESHOLD) || (get_calibrated_prox(PROX_FRONT_RIGHT_17) > PROX_DETECTION_THRESHOLD)) {
+		rotate_left(MAX_SPEED);
+	} else if ((get_calibrated_prox(PROX_FRONT_LEFT_49) > PROX_DETECTION_THRESHOLD) || (get_calibrated_prox(PROX_FRONT_LEFT_17) > PROX_DETECTION_THRESHOLD)) {
+		rotate_right(MAX_SPEED);
+	} else {
+		right_motor_set_speed(MAX_SPEED);
+    	left_motor_set_speed(MAX_SPEED);
+	}
+
+}
+
+
+void rotate_left(int speed) {
+	left_motor_set_speed(-speed);
+	right_motor_set_speed(speed);
+}
+
+void rotate_right(int speed) {
+	left_motor_set_speed(speed);
+	right_motor_set_speed(-speed);
+}
+
 
 static THD_WORKING_AREA(waReadIR, 256); //???? How to know the size to allocate ?
 static THD_FUNCTION(ReadIR, arg) {
@@ -200,14 +231,16 @@ static THD_FUNCTION(ReadIR, arg) {
 
     	time = chVTGetSystemTime();
 
-    	if (get_calibrated_prox(PROX_FRONT_RIGHT_17) > 100) {
-    		speed = 0;
-    	} else {
-    		speed = 200;
-    	}
+    	obstacles_avoidance_algorithm();
 
-    	right_motor_set_speed(speed);
-    	left_motor_set_speed(speed);
+    	// if (get_calibrated_prox(PROX_FRONT_RIGHT_17) > PROX_DETECTION_THRESHOLD) {
+    	// 	speed = 0;
+    	// } else {
+    	// 	speed = MAX_SPEED;
+    	// }
+
+    	// right_motor_set_speed(speed);
+    	// left_motor_set_speed(speed);
 
     	// test_prox_with_leds(PROX_LEFT);
 

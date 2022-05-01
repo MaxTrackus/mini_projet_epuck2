@@ -14,6 +14,7 @@
 #include <msgbus/messagebus.h>
 #include <spi_comm.h>
 
+
 #include <pi_regulator.h>
 #include <process_image.h>
 #include <sensors.h>
@@ -75,6 +76,7 @@ int main(void)
     //calibrate proximity sensors
     calibrate_ir();
 
+    //start thread for proximity sensors
     read_IR_start();
 
     /* Infinite loop. */
