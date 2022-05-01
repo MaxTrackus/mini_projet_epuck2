@@ -194,12 +194,16 @@ static THD_FUNCTION(ReadIR, arg) {
 
     systime_t time;
 
-    int16_t speed = 200;
+    int16_t speed = 0;
 
     while(1){
 
+    	time = chVTGetSystemTime();
+
     	if (get_calibrated_prox(PROX_FRONT_RIGHT_17) > 100) {
     		speed = 0;
+    	} else {
+    		speed = 200;
     	}
 
     	right_motor_set_speed(speed);
