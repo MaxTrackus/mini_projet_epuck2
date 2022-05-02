@@ -17,31 +17,8 @@ static float distance_cm = 0;
 static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//middle
 
 static bool staticFoundLine = false;
-
-//void spin_angle(uint16_t angle_in_degree) {
-//	uint16_t angle = angle_in_degree*1.82;
-//	if(angle_in_degree > MAX_SPIN_ANGLE) {
-//		angle = 360;
-//	}
-//
-//	// unit of positions are steps
-//	// We turn the motors in different directions to spin the robot until the left motor
-//	//   has made enough steps to have the robot at the given angle. The right motor isn't
-//	//   monitored to stop the motors at the right time
-//	int32_t initialLeftMotorPos = left_motor_get_pos();
-//	int32_t goalLeftMotorPos = initialLeftMotorPos + (int32_t)((25/9)*angle);
-//	left_motor_set_speed(100);
-//	right_motor_set_speed(-100);
-//	bool goalReached = false;
-//	while (goalReached == false) {
-//		// wait. the robot must wait or the hand must be given to another thread
-//		if(left_motor_get_pos() >= goalLeftMotorPos) {
-//			break;
-//		}
-//	}
-//	left_motor_set_speed(0);
-//	right_motor_set_speed(0);
-//}
+static bool analyseMode = false;
+static bool alignementMode = false;
 
 //semaphore
 static BSEMAPHORE_DECL(image_ready_sem, TRUE);
@@ -195,10 +172,51 @@ static THD_FUNCTION(ProcessImage, arg) {
 		//invert the bool
 		send_to_computer = !send_to_computer;
 
-		if(get_selector() == 1) {
-			spin_angle_degree(90);
+		//analyseMode
+		if(analyseMode) {
+			set_body_led(1);
+		}
+		else {
+			set_body_led(0);
+		}
+
+		//alignementMode
+		if(alignementMode) {
+			set_front_led(1);
+		}
+		else {
+			set_front_led(0);
+		}
+
+		//from idle to analyseMode
+		if((get_selector() == 1) && (!analyseMode) && (!alignementMode)) {
+			analyseMode = true;
+			spin_angle_degree(360);
+		}
+		//from analyseMode to alignementMode
+		if(analyseMode && staticFoundLine) {
+			analyseMode = false;
+			alignementMode = true;
+			stopMove();
+		}
+		//from alignementMode to analyseMode
+		if(alignementMode && (!staticFoundLine)) {
+			analyseMode = true;
+			alignementMode = false;
+			stopMove();
+			spin_angle_degree(360);
+		}
+		//stop and idle
+		if((get_selector() == 15)) {
+			analyseMode = false;
+			alignementMode = false;
+			stopMove();
 		}
     }
+}
+
+bool get_alignementMode(void) {
+	return alignementMode;
 }
 
 float get_distance_cm(void){

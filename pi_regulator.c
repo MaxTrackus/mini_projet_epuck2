@@ -50,7 +50,7 @@ static THD_FUNCTION(PiRegulator, arg) {
 
     systime_t time;
 
-//    int16_t speed = 0;
+    int16_t speed = 0;
 //    int16_t speed_correction = 0;
 
 //    uint16_t waitBeginningAlignementMode = 0;
@@ -58,16 +58,11 @@ static THD_FUNCTION(PiRegulator, arg) {
     while(1){
         time = chVTGetSystemTime();
 
-////        if(get_staticAlignementMode_notAnalyseMode() /*&& get_runMode_notStopMode()*/) {
-//        	speed = pi_regulator((float)get_line_position(), (IMAGE_BUFFER_SIZE/2));
-//        	right_motor_set_speed(-speed);
-//        	left_motor_set_speed(speed);
-////
-////        }
-////        else {
-////    		right_motor_set_speed(0);
-////    		left_motor_set_speed(0);
-////        }
+        if(get_alignementMode()) {
+        	speed = pi_regulator((float)get_line_position(), (IMAGE_BUFFER_SIZE/2));
+        	right_motor_set_speed(-speed);
+        	left_motor_set_speed(speed);
+        }
 
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
