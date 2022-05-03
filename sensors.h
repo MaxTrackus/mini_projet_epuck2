@@ -11,5 +11,7 @@ void read_IR_start(void);
 void obstacles_avoidance_algorithm(void);
 void rotate_left(int speed);
 void rotate_right(int speed);
+void rotate_right_in_degrees(int speed, float degrees);
+void motor_stop(void);
 
 #endif /* SENSORS_H */

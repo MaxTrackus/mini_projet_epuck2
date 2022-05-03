@@ -19,6 +19,8 @@
 
 #define MAX_SPEED						200
 
+#define MOTOR_STEP_TO_DEGREES			2.7
+
 #define PROX_DETECTION_THRESHOLD		100
 
 // GPIO_C id IR sensor
@@ -192,19 +194,27 @@ void set_led_with_int(unsigned int led_int_number) {
 
 void obstacles_avoidance_algorithm(void) {
 
-	if ((get_calibrated_prox(PROX_FRONT_RIGHT_49) > PROX_DETECTION_THRESHOLD) || (get_calibrated_prox(PROX_FRONT_LEFT_49) > PROX_DETECTION_THRESHOLD)) {
-		rotate_left(MAX_SPEED);
-	} else if ((get_calibrated_prox(PROX_FRONT_RIGHT_49) > PROX_DETECTION_THRESHOLD) || (get_calibrated_prox(PROX_FRONT_RIGHT_17) > PROX_DETECTION_THRESHOLD)) {
-		rotate_left(MAX_SPEED);
+	if ((get_calibrated_prox(PROX_FRONT_RIGHT_49) > PROX_DETECTION_THRESHOLD) && (get_calibrated_prox(PROX_FRONT_LEFT_49) > PROX_DETECTION_THRESHOLD)) {
+		motor_stop();
+//		rotate_left(MAX_SPEED);
 	} else if ((get_calibrated_prox(PROX_FRONT_LEFT_49) > PROX_DETECTION_THRESHOLD) || (get_calibrated_prox(PROX_FRONT_LEFT_17) > PROX_DETECTION_THRESHOLD)) {
+		motor_stop();
 		rotate_right(MAX_SPEED);
+	} else if ((get_calibrated_prox(PROX_FRONT_RIGHT_49) > PROX_DETECTION_THRESHOLD) || (get_calibrated_prox(PROX_FRONT_RIGHT_17) > PROX_DETECTION_THRESHOLD)) {
+		motor_stop();
+		rotate_left(MAX_SPEED);
 	} else {
+		motor_stop();
 		right_motor_set_speed(MAX_SPEED);
     	left_motor_set_speed(MAX_SPEED);
 	}
 
 }
 
+void motor_stop(void) {
+	left_motor_set_speed(0);
+	right_motor_set_speed(0);
+}
 
 void rotate_left(int speed) {
 	left_motor_set_speed(-speed);
@@ -215,6 +225,35 @@ void rotate_right(int speed) {
 	left_motor_set_speed(speed);
 	right_motor_set_speed(-speed);
 }
+
+void rotate_right_in_degrees(int speed, float degrees) {
+
+	float duration = abs(degrees) / MOTOR_STEP_TO_DEGREES;
+	float start_time = chVTGetSystemTime();
+	do {
+		rotate_right(speed);
+	} while (chVTGetSystemTime() < start_time + MS2ST(duration));
+
+	motor_stop();
+}
+
+// static float calculate_rotation_time(float degrees)
+// {
+// 	return abs(degrees) / ROBOT_ANGULAR_SPEED_IN_DEGREES;
+// }
+
+// void motor_rotate_left_in_degrees(float degrees) {
+// 	motor_rotate_left();
+	
+// 	float duration = calculate_rotation_time(degrees);
+// 	float start_time = wb_robot_get_time();
+// 	do
+// 	{
+// 		wb_robot_step(TIME_STEP);
+// 	} while (wb_robot_get_time() < start_time + duration);
+	
+// 	motor_stop();
+// }
 
 
 static THD_WORKING_AREA(waReadIR, 256); //???? How to know the size to allocate ?
