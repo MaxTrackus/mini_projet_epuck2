@@ -239,7 +239,7 @@ void rotate_right_in_degrees(int speed, float degrees) {
 
 void obstacles_follow_algorithm(void) {
 
-	bool follow_mode = false; 
+//	bool follow_mode = false;
 	bool exit_found = false; 
 
 	if (!exit_found) {
@@ -279,7 +279,7 @@ static THD_FUNCTION(ReadIR, arg) {
 
     systime_t time;
 
-    int16_t speed = 0;
+//    int16_t speed = 0;
 
     while(1){
 
