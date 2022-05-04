@@ -237,6 +237,21 @@ void rotate_right_in_degrees(int speed, float degrees) {
 	motor_stop();
 }
 
+void obstacles_follow_algorithm(void) {
+
+	bool follow_mode = false; 
+	bool exit_found = false; 
+
+	if (!exit_found) {
+		obstacles_avoidance_algorithm();
+	} else {
+		//rotate following external center
+		//go straight 
+		//go back to center
+	}
+	motor_stop();
+}
+
 // static float calculate_rotation_time(float degrees)
 // {
 // 	return abs(degrees) / ROBOT_ANGULAR_SPEED_IN_DEGREES;
