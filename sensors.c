@@ -6,6 +6,7 @@
 #include <leds.h>
 #include <motors.h>
 #include <epuck1x/utility/utility.h>
+#include <selector.h>
 
 #include <main.h>
 //#include <camera/po8030.h> // to remove once cleaned
@@ -17,11 +18,11 @@
 
 #define MAX_PROX_VALUE					4.095
 
-#define MAX_SPEED						200
+#define MAX_SPEED						400
 
 #define MOTOR_STEP_TO_DEGREES			2.7
 
-#define PROX_DETECTION_THRESHOLD		50
+#define PROX_DETECTION_THRESHOLD		100
 
 // GPIO_C id IR sensor
 #define PROX_FRONT_RIGHT_17 			0 // IR 1
@@ -197,14 +198,11 @@ void obstacles_avoidance_algorithm(void) {
 	if ((get_calibrated_prox(PROX_FRONT_RIGHT_49) > PROX_DETECTION_THRESHOLD) && (get_calibrated_prox(PROX_FRONT_LEFT_49) > PROX_DETECTION_THRESHOLD)) {
 		motor_stop();
 //		rotate_left(MAX_SPEED);
-	} else if ((get_calibrated_prox(PROX_FRONT_LEFT_49) > PROX_DETECTION_THRESHOLD) || (get_calibrated_prox(PROX_FRONT_LEFT_17) > PROX_DETECTION_THRESHOLD)) {
-		motor_stop();
+	} else if ((get_calibrated_prox(PROX_FRONT_LEFT_49) > PROX_DETECTION_THRESHOLD)) {
 		rotate_right(MAX_SPEED);
-	} else if ((get_calibrated_prox(PROX_FRONT_RIGHT_49) > PROX_DETECTION_THRESHOLD) || (get_calibrated_prox(PROX_FRONT_RIGHT_17) > PROX_DETECTION_THRESHOLD)) {
-		motor_stop();
+	} else if ((get_calibrated_prox(PROX_FRONT_RIGHT_49) > PROX_DETECTION_THRESHOLD)) {
 		rotate_left(MAX_SPEED);
 	} else {
-		motor_stop();
 		right_motor_set_speed(MAX_SPEED);
     	left_motor_set_speed(MAX_SPEED);
 	}
@@ -285,7 +283,13 @@ static THD_FUNCTION(ReadIR, arg) {
 
     	time = chVTGetSystemTime();
 
-    	obstacles_avoidance_algorithm();
+    	if((get_selector() == 8)) {
+			obstacles_avoidance_algorithm();
+		} else {
+			motor_stop();
+		}
+
+    	
 
     	// if (get_calibrated_prox(PROX_FRONT_RIGHT_17) > PROX_DETECTION_THRESHOLD) {
     	// 	speed = 0;

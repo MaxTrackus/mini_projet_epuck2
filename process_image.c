@@ -207,7 +207,7 @@ static THD_FUNCTION(ProcessImage, arg) {
 			spin_angle_degree(360);
 		}
 		//stop and idle
-		if((get_selector() == 15)) {
+		if((get_selector() == 15) || (get_selector() == 8)) {
 			analyseMode = false;
 			alignementMode = false;
 			stopMove();
