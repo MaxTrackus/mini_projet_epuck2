@@ -60,11 +60,6 @@ int main(void)
     serial_start();
     //start the USB communication
     usb_start();
- //    //starts the camera
- //    dcmi_start();
-	// po8030_start();
-	
-    //inits the motors
     //starts the camera
     dcmi_start();
 	po8030_start();
@@ -75,9 +70,6 @@ int main(void)
 	pi_regulator_start();
 	process_image_start();
 	move_start();
-	// //stars the threads for the pi regulator and the processing of the image
-	// pi_regulator_start();
-	// process_image_start();
 
     //start SPI communication
     spi_comm_start();
