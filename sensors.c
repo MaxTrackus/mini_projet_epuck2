@@ -21,7 +21,7 @@
 
 #define MOTOR_STEP_TO_DEGREES			2.7
 
-#define PROX_DETECTION_THRESHOLD		100
+#define PROX_DETECTION_THRESHOLD		50
 
 // GPIO_C id IR sensor
 #define PROX_FRONT_RIGHT_17 			0 // IR 1
