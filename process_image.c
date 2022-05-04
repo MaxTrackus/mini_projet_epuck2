@@ -156,12 +156,6 @@ static THD_FUNCTION(ProcessImage, arg) {
 			//extracts last 3bits of the second byte and combine
 			image[i/2] = (uint8_t)(((img_buff_ptr[i]&0x07) << 3)|((img_buff_ptr[i+1]&0xE0) >> 5));
 		}
-//		//from TP4
-//		uint16_t temp = 0;
-//		for(uint16_t i=0; i<IMAGE_BUFFER_SIZE; i++) {
-//			temp = i*2;
-//			image[i] = (((img_buff_ptr[temp]) >> 3) & (31));
-//		}
 
 		//search for a line in the image and gets its width in pixels
 		lineWidth = extract_line_width(image);
