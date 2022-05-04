@@ -9,6 +9,8 @@
 #include <selector.h>
 
 #include <main.h>
+#include <testing.h>
+#include <move.h>
 //#include <camera/po8030.h> // to remove once cleaned
 
 #include <sensors.h>
@@ -127,71 +129,6 @@
 //	}
 //}
 
-void clear_led_with_int(unsigned int led_int_number) {
-	
-	switch (led_int_number) {
-		case 1: 
-			set_led(LED1, 0);
-			break;
-		case 2:
-			set_rgb_led(LED2, 0, 0, 0);
-			break;
-		case 3:
-			set_led(LED3, 0);
-			break;
-		case 4:
-			set_rgb_led(LED4, 0, 0, 0);
-			break; ///
-		case 5: 
-			set_led(LED5, 0);
-			break;
-		case 6:
-			set_rgb_led(LED6, 0, 0, 0);
-			break;
-		case 7:
-			set_led(LED7, 0);
-			break;
-		case 8:
-			set_rgb_led(LED8, 0, 0, 0);
-			break; ///
-		default:
-			break;
-	}
-
-}
-
-void set_led_with_int(unsigned int led_int_number) {
-	
-	switch (led_int_number) {
-		case 1: 
-			set_led(LED1, 1);
-			break;
-		case 2:
-			set_rgb_led(LED2, 10, 0, 0);
-			break;
-		case 3:
-			set_led(LED3, 1);
-			break;
-		case 4:
-			set_rgb_led(LED4, 10, 0, 0);
-			break; ///
-		case 5: 
-			set_led(LED5, 1);
-			break;
-		case 6:
-			set_rgb_led(LED6, 10, 0, 0);
-			break;
-		case 7:
-			set_led(LED7, 1);
-			break;
-		case 8:
-			set_rgb_led(LED8, 10, 0, 0);
-			break; ///
-		default:
-			break;
-	}
-
-}
 
 void obstacles_avoidance_algorithm(void) {
 
@@ -207,32 +144,6 @@ void obstacles_avoidance_algorithm(void) {
     	left_motor_set_speed(MAX_SPEED);
 	}
 
-}
-
-void motor_stop(void) {
-	left_motor_set_speed(0);
-	right_motor_set_speed(0);
-}
-
-void rotate_left(int speed) {
-	left_motor_set_speed(-speed);
-	right_motor_set_speed(speed);
-}
-
-void rotate_right(int speed) {
-	left_motor_set_speed(speed);
-	right_motor_set_speed(-speed);
-}
-
-void rotate_right_in_degrees(int speed, float degrees) {
-
-	float duration = abs(degrees) / MOTOR_STEP_TO_DEGREES;
-	float start_time = chVTGetSystemTime();
-	do {
-		rotate_right(speed);
-	} while (chVTGetSystemTime() < start_time + MS2ST(duration));
-
-	motor_stop();
 }
 
 void obstacles_follow_algorithm(void) {

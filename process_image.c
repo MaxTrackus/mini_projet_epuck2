@@ -182,7 +182,7 @@ static THD_FUNCTION(ProcessImage, arg) {
 
 		//alignementMode
 		if(alignementMode) {
-			set_front_led(1);
+			//set_front_led(1);
 		}
 		else {
 			set_front_led(0);
