@@ -13,6 +13,7 @@
 #include <chprintf.h>
 #include <msgbus/messagebus.h>
 #include <spi_comm.h>
+#include <sensors/proximity.h>
 
 
 #include <pi_regulator.h>
