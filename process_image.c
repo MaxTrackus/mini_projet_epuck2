@@ -17,8 +17,8 @@ static float distance_cm = 0;
 static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//middle
 
 static bool staticFoundLine = false;
-static bool analyseMode = false;
-static bool alignementMode = false;
+//static bool analyseMode = false;    //to remove
+//static bool alignementMode = false; // to remove
 
 //semaphore
 static BSEMAPHORE_DECL(image_ready_sem, TRUE);
@@ -172,51 +172,59 @@ static THD_FUNCTION(ProcessImage, arg) {
 		//invert the bool
 		send_to_computer = !send_to_computer;
 
-		//analyseMode
-		if(analyseMode) {
-			set_body_led(1);
-		}
-		else {
-			set_body_led(0);
-		}
-
-		//alignementMode
-		if(alignementMode) {
-			set_front_led(1);
-		}
-		else {
-			set_front_led(0);
-		}
-
-		//from idle to analyseMode
-		if((get_selector() == 1) && (!analyseMode) && (!alignementMode)) {
-			analyseMode = true;
-			spin_angle_degree(360);
-		}
-		//from analyseMode to alignementMode
-		if(analyseMode && staticFoundLine) {
-			analyseMode = false;
-			alignementMode = true;
-			stopMove();
-		}
-		//from alignementMode to analyseMode
-		if(alignementMode && (!staticFoundLine)) {
-			analyseMode = true;
-			alignementMode = false;
-			stopMove();
-			spin_angle_degree(360);
-		}
-		//stop and idle
-		if((get_selector() == 15)) {
-			analyseMode = false;
-			alignementMode = false;
-			stopMove();
-		}
+		//////////////////////////////////////////////////////////to remove
+//		//analyseMode
+//		if(analyseMode) {
+//			set_body_led(1);
+//		}
+//		else {
+//			set_body_led(0);
+//		}
+//
+//		//alignementMode
+//		if(alignementMode) {
+//			set_front_led(1);
+//		}
+//		else {
+//			set_front_led(0);
+//		}
+//
+//		//from idle to analyseMode
+//		if((get_selector() == 1) && (!analyseMode) && (!alignementMode)) {
+//			analyseMode = true;
+//			spin_angle_degree(360);
+//		}
+//		//from analyseMode to alignementMode
+//		if(analyseMode && staticFoundLine) {
+//			analyseMode = false;
+//			alignementMode = true;
+//			stopMove();
+//		}
+//		//from alignementMode to analyseMode
+//		if(alignementMode && (!staticFoundLine)) {
+//			analyseMode = true;
+//			alignementMode = false;
+//			stopMove();
+//			spin_angle_degree(360);
+//		}
+//		//stop and idle
+//		if((get_selector() == 15)) {
+//			analyseMode = false;
+//			alignementMode = false;
+//			stopMove();
+//		}
+//////////////////////////////////////////////////////////to remove
     }
 }
 
-bool get_alignementMode(void) {
-	return alignementMode;
+//////////////////////////////////////////////////////////to remove
+//bool get_alignementMode(void) {
+//	return alignementMode;
+//}
+//////////////////////////////////////////////////////////to remove
+
+bool get_staticFoundLine(void) {
+	return staticFoundLine;
 }
 
 float get_distance_cm(void){

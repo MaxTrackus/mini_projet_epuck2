@@ -15,6 +15,7 @@
 #include <pi_regulator.h>
 #include <process_image.h>
 #include <move.h>
+#include <central_unit.h>
 
 void SendUint8ToComputer(uint8_t* data, uint16_t size) 
 {
@@ -58,6 +59,7 @@ int main(void)
 	pi_regulator_start();
 	process_image_start();
 	move_start();
+	central_unit_start();
 
     /* Infinite loop. */
     while (1) {

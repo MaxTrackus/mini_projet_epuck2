@@ -10,6 +10,7 @@
 #include <pi_regulator.h>
 #include <process_image.h>
 #include <selector.h>
+#include <central_unit.h>
 
 //simple PI regulator implementation
 int16_t pi_regulator(float distance, float goal){
@@ -69,8 +70,9 @@ static THD_FUNCTION(PiRegulator, arg) {
     }
 }
 
-
-
 void pi_regulator_start(void){
 	chThdCreateStatic(waPiRegulator, sizeof(waPiRegulator), NORMALPRIO, PiRegulator, NULL);
 }
+
+
+
