@@ -192,13 +192,13 @@ static THD_FUNCTION(ReadIR, arg) {
 
     while(1){
 
-    	time = chVTGetSystemTime();
+  //   	time = chVTGetSystemTime();
 
-    	if((get_selector() == 8)) {
-			obstacles_avoidance_algorithm();
-		} else {
-			motor_stop();
-		}
+  //   	if((get_selector() == 8) && (get_selector() != 1) && (get_selector() != 0)) {
+		// 	obstacles_avoidance_algorithm();
+		// } else {
+		// 	motor_stop();
+		// }
 
     	
 
@@ -218,18 +218,6 @@ static THD_FUNCTION(ReadIR, arg) {
     }
 }
 
-void test_prox_with_leds(unsigned int sensor_number) {
-
-	volatile unsigned int prox_right_value = ((float)get_calibrated_prox(sensor_number)/(MAX_PROX_VALUE))*0.008; // Normalize proximity value to int of max value <= 9
-
-	set_led_with_int(prox_right_value);
-
-	wait(84000);
-
-	clear_led_with_int(prox_right_value);
-
-	// wait(84000);
-}
 //
 //static THD_WORKING_AREA(waCaptureImage, 256);
 //static THD_FUNCTION(CaptureImage, arg) {

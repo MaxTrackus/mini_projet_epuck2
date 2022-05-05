@@ -81,7 +81,7 @@ int main(void)
     calibrate_ir();
 
     //start thread for proximity sensors
-    read_IR_start();
+//    read_IR_start();
 
     /* Infinite loop. */
     while (1) {
