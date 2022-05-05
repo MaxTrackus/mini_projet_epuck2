@@ -12,6 +12,8 @@
 #include <selector.h>
 #include <central_unit.h>
 
+static bool enablePiRegulator = false;
+
 //simple PI regulator implementation
 int16_t pi_regulator(float distance, float goal){
 
@@ -57,7 +59,7 @@ static THD_FUNCTION(PiRegulator, arg) {
     while(1){
         time = chVTGetSystemTime();
 
-        if(get_current_mode() == ALIGN) {
+        if(enablePiRegulator) {
         	speed = pi_regulator((float)get_line_position(), (IMAGE_BUFFER_SIZE/2));
         	right_motor_set_speed(-speed);
         	left_motor_set_speed(speed);
@@ -66,6 +68,10 @@ static THD_FUNCTION(PiRegulator, arg) {
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
     }
+}
+
+void set_enablePiRegulator(bool status) {
+	enablePiRegulator = status;
 }
 
 void pi_regulator_start(void){

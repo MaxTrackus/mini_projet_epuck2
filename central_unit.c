@@ -46,23 +46,18 @@ static THD_FUNCTION(CentralUnit, arg) {
 		//from idle to analyseMode
 		if((get_selector() == 1) && (currentMode == STOP)) {
 			currentMode = ANALYSE;
-			spin_angle_degree(360);
 		}
 		//from analyseMode to alignementMode
 		if((currentMode == ANALYSE) && get_staticFoundLine()) {
 			currentMode = ALIGN;
-			stopMove();
 		}
 		//from alignementMode to analyseMode
 		if((currentMode == ALIGN) && (!(get_staticFoundLine()))) {
 			currentMode = ANALYSE;
-			stopMove();
-			spin_angle_degree(360);
 		}
 		//stop and idle
 		if((get_selector() == 15)) {
 			currentMode = STOP;
-			stopMove();
 		}
 
         //100Hz

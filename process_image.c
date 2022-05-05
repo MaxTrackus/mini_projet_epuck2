@@ -17,8 +17,6 @@ static float distance_cm = 0;
 static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//middle
 
 static bool staticFoundLine = false;
-//static bool analyseMode = false;    //to remove
-//static bool alignementMode = false; // to remove
 
 //semaphore
 static BSEMAPHORE_DECL(image_ready_sem, TRUE);
