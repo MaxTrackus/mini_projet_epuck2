@@ -8,6 +8,7 @@ extern "C" {
 #include "camera/dcmi_camera.h"
 #include "msgbus/messagebus.h"
 #include "parameter/parameter.h"
+#include "motors.h" // pour le define MOTOR_SPEED_LIMIT mais pas censé A DEMANDER AUX ASSISTANTS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 //constants for the differents parts of the project

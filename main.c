@@ -7,15 +7,16 @@
 #include "hal.h"
 #include "memory_protection.h"
 #include <usbcfg.h>
-#include <main.h>
 #include <motors.h>
 #include <camera/po8030.h>
 #include <chprintf.h>
 
-#include <pi_regulator.h>
+#include <main.h>
+#include <central_unit.h>
 #include <process_image.h>
 #include <move.h>
-#include <central_unit.h>
+#include <pi_regulator.h>
+
 
 void SendUint8ToComputer(uint8_t* data, uint16_t size) 
 {

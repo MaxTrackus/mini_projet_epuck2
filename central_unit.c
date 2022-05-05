@@ -1,17 +1,13 @@
-// implicit includes
 #include "ch.h"
 #include "hal.h"
 #include <math.h>
 #include <usbcfg.h>
 #include <chprintf.h>
 
-// from libraries
 #include <leds.h>
 #include <selector.h>
 
-// from other files
 #include <central_unit.h>
-#include <move.h>
 #include <process_image.h>
 
 static uint8_t currentMode = STOP; // to add

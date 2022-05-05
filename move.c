@@ -4,13 +4,11 @@
 #include <usbcfg.h>
 #include <chprintf.h>
 
-
-#include <main.h>
 #include <motors.h>
+
 #include <move.h>
-#include <leds.h>
-#include <pi_regulator.h>
 #include <central_unit.h>
+#include <pi_regulator.h>
 
 #define MAX_SPIN_ANGLE		360
 

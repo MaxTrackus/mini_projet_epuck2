@@ -4,13 +4,9 @@
 #include <usbcfg.h>
 #include <chprintf.h>
 
-
-#include <main.h>
-#include <motors.h>
 #include <pi_regulator.h>
-#include <process_image.h>
-#include <selector.h>
-#include <central_unit.h>
+#include <main.h> // pour les defines mais c'est tout pas censé normalement
+#include <process_image.h> // besoin pour avoir la line position mais pas censé on devrait changer
 
 static bool enablePiRegulator = false;
 

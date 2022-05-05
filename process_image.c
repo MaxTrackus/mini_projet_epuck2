@@ -3,13 +3,9 @@
 #include <chprintf.h>
 #include <usbcfg.h>
 
-#include <main.h>
 #include <camera/po8030.h>
-#include <leds.h>
-#include <motors.h>
-#include <selector.h>
-#include <move.h>
 
+#include <main.h> // pour les defines mais c'est tout pas censé normalement
 #include <process_image.h>
 
 
