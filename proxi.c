@@ -10,7 +10,7 @@
 #include <main.h>
 //#include <camera/po8030.h> // to remove once cleaned
 
-#include <sensors.h>
+#include <proxi.h>
 
 
 #define NUM_LEDS						8

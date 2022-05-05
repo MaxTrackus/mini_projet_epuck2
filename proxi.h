@@ -1,5 +1,5 @@
-#ifndef SENSORS_H
-#define SENSORS_H
+#ifndef PROXI_H
+#define PROXI_H
 
 //float get_distance_cm(void);
 //uint16_t get_line_position(void);
@@ -14,4 +14,4 @@ void rotate_right(int speed);
 void rotate_right_in_degrees(int speed, float degrees);
 void motor_stop(void);
 
-#endif /* SENSORS_H */
+#endif /* PROXI_H */
