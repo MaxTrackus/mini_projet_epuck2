@@ -21,9 +21,9 @@
 #include <move.h>
 #include <sensors.h>
 
-messagebus_t bus;
-MUTEX_DECL(bus_lock);
-CONDVAR_DECL(bus_condvar);
+//messagebus_t bus;
+//MUTEX_DECL(bus_lock);
+//CONDVAR_DECL(bus_condvar);
 
 void SendUint8ToComputer(uint8_t* data, uint16_t size) 
 {
@@ -54,7 +54,7 @@ int main(void)
     mpu_init();
 
     /** Inits the Inter Process Communication bus. */
-    messagebus_init(&bus, &bus_lock, &bus_condvar);
+//    messagebus_init(&bus, &bus_lock, &bus_condvar);
 
     //starts the serial communication
     serial_start();
@@ -71,14 +71,14 @@ int main(void)
 	process_image_start();
 	move_start();
 
-    //start SPI communication
-    spi_comm_start();
-
-    //inits the proximity sensors
-    proximity_start();
-
-    //calibrate proximity sensors
-    calibrate_ir();
+//    //start SPI communication
+//    spi_comm_start();
+//
+//    //inits the proximity sensors
+//    proximity_start();
+//
+//    //calibrate proximity sensors
+//    calibrate_ir();
 
     //start thread for proximity sensors
 //    read_IR_start();
