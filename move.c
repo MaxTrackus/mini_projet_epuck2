@@ -36,9 +36,11 @@ static THD_FUNCTION(StepTracker, arg) {
             	 stopMove();
             	 break;
              case ANALYSE:
+            	 stopMove();
             	 spin_angle_degree(360);
             	 break;
              case ALIGN:
+            	 stopMove();
             	 set_enablePiRegulator(true);
             	 break;
              default:
