@@ -13,11 +13,11 @@
 #include <testing.h>
 
 
-#define MAX_PROX_VALUE					4.095
+#define MAX_PROX_VALUE					4.095 // to remove once completed
 
-#define MAX_SPEED						200
+// #define MAX_SPEED						200
 
-#define MOTOR_STEP_TO_DEGREES			2.7
+// #define MOTOR_STEP_TO_DEGREES			2.7
 
 #define PROX_DETECTION_THRESHOLD		100
 
@@ -36,7 +36,6 @@ bool* get_prox_activation_status(int prox_detection_threshold) {
 			prox_activation_status[i] = false;
 		}
 	}
-
 	return prox_activation_status;
 }
 
@@ -95,6 +94,15 @@ static THD_FUNCTION(ReadProx, arg) {
     	for (int i = 0; i < NB_PROX_SENSORS; ++i) {
 			prox_value[i] = get_calibrated_prox(i);
 		}	
+
+		// --- USED FOR TESTINGS ----
+		// bool *sensors_table = get_prox_activation_status(PROX_DETECTION_THRESHOLD);
+
+		// if (sensors_table[PROX_RIGHT]) {
+		// 	set_led_with_int(PROX_RIGHT);
+		// } else {
+		// 	clear_led_with_int(PROX_RIGHT);
+		// }
 
     	//100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
