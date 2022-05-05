@@ -54,12 +54,10 @@ static THD_FUNCTION(PiRegulator, arg) {
     int16_t speed = 0;
 //    int16_t speed_correction = 0;
 
-//    uint16_t waitBeginningAlignementMode = 0;
-
     while(1){
         time = chVTGetSystemTime();
 
-        if(get_alignementMode()) {
+        if(get_current_mode() == ALIGN) {
         	speed = pi_regulator((float)get_line_position(), (IMAGE_BUFFER_SIZE/2));
         	right_motor_set_speed(-speed);
         	left_motor_set_speed(speed);

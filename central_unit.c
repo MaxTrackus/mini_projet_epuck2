@@ -14,10 +14,7 @@
 #include <move.h>
 #include <process_image.h>
 
-//static uint8_t currentMode = STOP;// to add
-static bool analyseMode = false;    //to remove
-static bool alignementMode = false; // to remove
-
+static uint8_t currentMode = STOP; // to add
 
 static THD_WORKING_AREA(waCentralUnit, 256);
 static THD_FUNCTION(CentralUnit, arg) {
@@ -31,7 +28,7 @@ static THD_FUNCTION(CentralUnit, arg) {
         time = chVTGetSystemTime();
 
 		//analyseMode
-		if(analyseMode) {
+		if(currentMode == ANALYSE) {
 			set_body_led(1);
 		}
 		else {
@@ -39,7 +36,7 @@ static THD_FUNCTION(CentralUnit, arg) {
 		}
 
 		//alignementMode
-		if(alignementMode) {
+		if(currentMode == ALIGN) {
 			set_front_led(1);
 		}
 		else {
@@ -47,27 +44,24 @@ static THD_FUNCTION(CentralUnit, arg) {
 		}
 
 		//from idle to analyseMode
-		if((get_selector() == 1) && (!analyseMode) && (!alignementMode)) {
-			analyseMode = true;
+		if((get_selector() == 1) && (currentMode == STOP)) {
+			currentMode = ANALYSE;
 			spin_angle_degree(360);
 		}
 		//from analyseMode to alignementMode
-		if(analyseMode && get_staticFoundLine()) {
-			analyseMode = false;
-			alignementMode = true;
+		if((currentMode == ANALYSE) && get_staticFoundLine()) {
+			currentMode = ALIGN;
 			stopMove();
 		}
 		//from alignementMode to analyseMode
-		if(alignementMode && (!(get_staticFoundLine()))) {
-			analyseMode = true;
-			alignementMode = false;
+		if((currentMode == ALIGN) && (!(get_staticFoundLine()))) {
+			currentMode = ANALYSE;
 			stopMove();
 			spin_angle_degree(360);
 		}
 		//stop and idle
 		if((get_selector() == 15)) {
-			analyseMode = false;
-			alignementMode = false;
+			currentMode = STOP;
 			stopMove();
 		}
 
@@ -76,17 +70,9 @@ static THD_FUNCTION(CentralUnit, arg) {
     }
 }
 
-//////////////////////////////////////////////////////////to remove
-bool get_alignementMode(void) {
-	return alignementMode;
+task_mode get_current_mode(void) {
+	return currentMode;
 }
-//////////////////////////////////////////////////////////to remove
-
-//////////////////////////////////////////////////////////to add
-//task_mode get_current_mode(void) {
-//
-//}
-//////////////////////////////////////////////////////////to add
 
 void central_unit_start(void){
 	chThdCreateStatic(waCentralUnit, sizeof(waCentralUnit), NORMALPRIO, CentralUnit, NULL);

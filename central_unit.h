@@ -8,9 +8,7 @@ typedef enum {
 	ALIGN,
 } task_mode;
 
-//////////////////////////////////////////////////////////to remove
-bool get_alignementMode(void);
-//////////////////////////////////////////////////////////to remove
+task_mode get_current_mode(void);
 
 //start the central unit thread
 void central_unit_start(void);
