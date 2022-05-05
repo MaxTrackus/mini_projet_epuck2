@@ -15,11 +15,7 @@ bool* get_prox_activation_status(int prox_detection_threshold);
 int* get_prox_value(void);
 
 void test_prox_with_leds(unsigned int sensor_number);
-void read_IR_start(void);
+void read_prox_start(void);
 void obstacles_avoidance_algorithm(void);
-void rotate_left(int speed);
-void rotate_right(int speed);
-void rotate_right_in_degrees(int speed, float degrees);
-void motor_stop(void);
 
 #endif /* PROXI_H */

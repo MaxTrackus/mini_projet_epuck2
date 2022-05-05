@@ -18,7 +18,6 @@
 
 #include <pi_regulator.h>
 #include <process_image.h>
-#include <sensors.h>
 
 messagebus_t bus;
 MUTEX_DECL(bus_lock);
@@ -78,7 +77,7 @@ int main(void)
     calibrate_ir();
 
     //start thread for proximity sensors
-    read_IR_start();
+    read_prox_start();
 
     /* Infinite loop. */
     while (1) {
