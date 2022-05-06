@@ -6,6 +6,7 @@ typedef enum {
 	STOP,
 	ANALYSE,
 	ALIGN,
+	AVOID,
 } task_mode;
 
 task_mode get_current_mode(void);

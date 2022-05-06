@@ -9,6 +9,7 @@
 #include <move.h>
 #include <central_unit.h>
 #include <pi_regulator.h>
+#include <proxi.h>
 
 #define MAX_SPIN_ANGLE		360
 
@@ -41,6 +42,10 @@ static THD_FUNCTION(StepTracker, arg) {
             	 stopMove();
             	 set_enablePiRegulator(true);
             	 break;
+        	 case AVOID:
+	        	 stopMove();
+	        	 avoid_obstacles(200, 100);
+	        	 break;
              default:
             	 stopMove();
         }
@@ -116,15 +121,48 @@ void rotate_right(int speed) {
 	right_motor_set_speed(-speed);
 }
 
-void rotate_right_in_degrees(int speed, float degrees) {
+// void rotate_right_in_degrees(int speed, float degrees) {
 
-	float duration = abs(degrees) / MOTOR_STEP_TO_DEGREES;
-	float start_time = chVTGetSystemTime();
-	do {
+// //	float duration = abs(degrees) / MOTOR_STEP_TO_DEGREES;
+// //	float start_time = chVTGetSystemTime();
+// //	do {
+// //		rotate_right(speed);
+// //	} while (chVTGetSystemTime() < start_time + MS2ST(duration));
+// //
+// //	motor_stop();
+// }
+
+void avoid_obstacles(int speed, int prox_detection_threshold) {
+
+	bool *prox_status_table = get_prox_activation_status(prox_detection_threshold);
+
+	if (prox_status_table[PROX_FRONT_LEFT_49] == true) {
 		rotate_right(speed);
-	} while (chVTGetSystemTime() < start_time + MS2ST(duration));
-
-	motor_stop();
+	} else if (prox_status_table[PROX_FRONT_RIGHT_49] == true) {
+		rotate_left(speed);
+	} else {
+		right_motor_set_speed(speed);
+		left_motor_set_speed(speed);
+	}
 }
+
+// void obstacles_avoidance_algorithm(void) {
+
+// 	if ((get_calibrated_prox(PROX_FRONT_RIGHT_49) > PROX_DETECTION_THRESHOLD) && (get_calibrated_prox(PROX_FRONT_LEFT_49) > PROX_DETECTION_THRESHOLD)) {
+// 		motor_stop();
+// //		rotate_left(MAX_SPEED);
+// 	} else if ((get_calibrated_prox(PROX_FRONT_LEFT_49) > PROX_DETECTION_THRESHOLD) || (get_calibrated_prox(PROX_FRONT_LEFT_17) > PROX_DETECTION_THRESHOLD)) {
+// 		motor_stop();
+// 		rotate_right(MAX_SPEED);
+// 	} else if ((get_calibrated_prox(PROX_FRONT_RIGHT_49) > PROX_DETECTION_THRESHOLD) || (get_calibrated_prox(PROX_FRONT_RIGHT_17) > PROX_DETECTION_THRESHOLD)) {
+// 		motor_stop();
+// 		rotate_left(MAX_SPEED);
+// 	} else {
+// 		motor_stop();
+// 		right_motor_set_speed(MAX_SPEED);
+//     	left_motor_set_speed(MAX_SPEED);
+// 	}
+
+// }
 
 // END -- Added by j.Suchet on 04.05.22

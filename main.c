@@ -20,6 +20,7 @@
 #include <process_image.h>
 #include <move.h>
 #include <pi_regulator.h>
+#include <proxi.h>
 
 messagebus_t bus;
 MUTEX_DECL(bus_lock);
@@ -56,8 +57,6 @@ int main(void)
     /** Inits the Inter Process Communication bus. */
     messagebus_init(&bus, &bus_lock, &bus_condvar);
 
-    //starts the serial communication
-    serial_start();
     //start the USB communication
     usb_start();
     //starts the camera
@@ -65,27 +64,24 @@ int main(void)
 	po8030_start();
 	//inits the motors
 	motors_init();
+	//inits the proximity sensors
+    proximity_start();
+    //start SPI communication
+    spi_comm_start();
+    //starts the serial communication
+    serial_start();
+
+	//calibrate proximity sensors
+    calibrate_ir();
+
+    //start thread for proximity sensors
+    read_prox_start();
 
 	//stars the threads for the pi regulator and the processing of the image
 	pi_regulator_start();
 	process_image_start();
 	move_start();
 	central_unit_start();
-	// //stars the threads for the pi regulator and the processing of the image
-	// pi_regulator_start();
-	// process_image_start();
-
-    //start SPI communication
-    spi_comm_start();
-
-    //inits the proximity sensors
-    proximity_start();
-
-    //calibrate proximity sensors
-    calibrate_ir();
-
-    //start thread for proximity sensors
-    read_prox_start();
 
     /* Infinite loop. */
     while (1) {

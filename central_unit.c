@@ -51,6 +51,10 @@ static THD_FUNCTION(CentralUnit, arg) {
 		if((currentMode == ALIGN) && (!(get_staticFoundLine()))) {
 			currentMode = ANALYSE;
 		}
+		//from idle to avoid
+		if((get_selector() == 8)) {
+			currentMode = AVOID;
+		}
 		//stop and idle
 		if((get_selector() == 15)) {
 			currentMode = STOP;
