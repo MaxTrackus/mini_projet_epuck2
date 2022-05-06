@@ -23,8 +23,11 @@ typedef enum {
 #define MAX_SPIN_ANGLE		360
 
 static int32_t goalLeftMotorPos = 0;
-static bool enableChangeOfLeftMotorPos = true;
+static bool enableCallsOfFunctionThatUseStepTracker = true;
 static uint8_t currentModeInMove = STOP;
+//static bool rotationMappingIsOn = false;
+//static int rotationMappingValue = 0;
+static bool currentlySpinning = false;
 
 static THD_WORKING_AREA(waStepTracker, 256);
 static THD_FUNCTION(StepTracker, arg) {
@@ -66,13 +69,26 @@ static THD_FUNCTION(StepTracker, arg) {
             	 stopMove();
         }
 
-        // stepTracker
-        if(!enableChangeOfLeftMotorPos) {
+        // rotationMapping
+//        if(((currentModeInMove == ANALYSE) || (currentModeInMove == ALIGN)) && !rotationMappingIsOn) {
+//        	rotationMappingIsOn = true;
+//        	enableCallsOfFunctionThatUseStepTracker = false;
+//        	left_motor_set_pos(rotationMappingValue);
+//        }
+//        if(!(currentModeInMove == ANALYSE) && !(currentModeInMove == ALIGN) && rotationMappingIsOn) {
+//        	rotationMappingIsOn = false;
+//        	enableCallsOfFunctionThatUseStepTracker = true;
+//        	rotationMappingValue = left_motor_get_pos();
+//        }
+
+        // stepTracker for spinning
+        if(currentlySpinning) {
     		if(left_motor_get_pos() >= goalLeftMotorPos) {
     			goalLeftMotorPos = 0;
     			left_motor_set_speed(0);
     			right_motor_set_speed(0);
-    			enableChangeOfLeftMotorPos = true;
+    			enableCallsOfFunctionThatUseStepTracker = true;
+    			currentlySpinning = false;
     		}
         }
 
@@ -88,11 +104,12 @@ void spin_angle_degree(uint16_t angle_in_degree) {
 	}
 
 	// unit of positions are steps
-	if(enableChangeOfLeftMotorPos) {
+	if(enableCallsOfFunctionThatUseStepTracker) {
 		left_motor_set_pos(0);
 
 		goalLeftMotorPos = (int32_t)((25/9)*angle);
-		enableChangeOfLeftMotorPos = false;
+		enableCallsOfFunctionThatUseStepTracker = false;
+		currentlySpinning = true;
 
 		left_motor_set_speed(150);
 		right_motor_set_speed(-150);
@@ -116,7 +133,7 @@ bool toggle_boolean(bool x) {
 void stopMove(void) {
 	left_motor_set_speed(0);
 	right_motor_set_speed(0);
-	enableChangeOfLeftMotorPos = true;
+	enableCallsOfFunctionThatUseStepTracker = true;
 	set_enablePiRegulator(false);
 }
 
