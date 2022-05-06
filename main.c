@@ -7,23 +7,16 @@
 #include "hal.h"
 #include "memory_protection.h"
 #include <usbcfg.h>
-#include <main.h>
 #include <motors.h>
 #include <camera/po8030.h>
 #include <chprintf.h>
-#include <msgbus/messagebus.h>
-#include <spi_comm.h>
-#include <sensors/proximity.h>
 
-
-#include <pi_regulator.h>
+#include <main.h>
+#include <central_unit.h>
 #include <process_image.h>
 #include <move.h>
-#include <sensors.h>
+#include <pi_regulator.h>
 
-messagebus_t bus;
-MUTEX_DECL(bus_lock);
-CONDVAR_DECL(bus_condvar);
 
 void SendUint8ToComputer(uint8_t* data, uint16_t size) 
 {
@@ -53,9 +46,6 @@ int main(void)
     chSysInit();
     mpu_init();
 
-    /** Inits the Inter Process Communication bus. */
-    messagebus_init(&bus, &bus_lock, &bus_condvar);
-
     //starts the serial communication
     serial_start();
     //start the USB communication
@@ -70,18 +60,7 @@ int main(void)
 	pi_regulator_start();
 	process_image_start();
 	move_start();
-
-    //start SPI communication
-    spi_comm_start();
-
-    //inits the proximity sensors
-    proximity_start();
-
-    //calibrate proximity sensors
-    calibrate_ir();
-
-    //start thread for proximity sensors
-    read_IR_start();
+	central_unit_start();
 
     /* Infinite loop. */
     while (1) {

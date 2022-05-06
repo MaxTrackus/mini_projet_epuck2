@@ -4,12 +4,11 @@
 #include <usbcfg.h>
 #include <chprintf.h>
 
-
-#include <main.h>
-#include <motors.h>
 #include <pi_regulator.h>
-#include <process_image.h>
-#include <selector.h>
+#include <main.h> // pour les defines mais c'est tout pas censé normalement
+#include <process_image.h> // besoin pour avoir la line position mais pas censé on devrait changer
+
+static bool enablePiRegulator = false;
 
 //simple PI regulator implementation
 int16_t pi_regulator(float distance, float goal){
@@ -53,12 +52,10 @@ static THD_FUNCTION(PiRegulator, arg) {
     int16_t speed = 0;
 //    int16_t speed_correction = 0;
 
-//    uint16_t waitBeginningAlignementMode = 0;
-
     while(1){
         time = chVTGetSystemTime();
 
-        if(get_alignementMode()) {
+        if(enablePiRegulator) {
         	speed = pi_regulator((float)get_line_position(), (IMAGE_BUFFER_SIZE/2));
         	right_motor_set_speed(-speed);
         	left_motor_set_speed(speed);
@@ -69,8 +66,13 @@ static THD_FUNCTION(PiRegulator, arg) {
     }
 }
 
-
+void set_enablePiRegulator(bool status) {
+	enablePiRegulator = status;
+}
 
 void pi_regulator_start(void){
 	chThdCreateStatic(waPiRegulator, sizeof(waPiRegulator), NORMALPRIO, PiRegulator, NULL);
 }
+
+
+

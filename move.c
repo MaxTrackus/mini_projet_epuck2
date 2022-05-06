@@ -4,11 +4,11 @@
 #include <usbcfg.h>
 #include <chprintf.h>
 
-
-#include <main.h>
 #include <motors.h>
+
 #include <move.h>
-#include <leds.h>
+#include <central_unit.h>
+#include <pi_regulator.h>
 
 #define MAX_SPIN_ANGLE		360
 
@@ -27,14 +27,34 @@ static THD_FUNCTION(StepTracker, arg) {
     while(1){
         time = chVTGetSystemTime();
 
-        if(!enableChangeOfLeftMotorPos) {
-    		if(left_motor_get_pos() >= goalLeftMotorPos) {
-    			goalLeftMotorPos = 0;
-    			left_motor_set_speed(0);
-    			right_motor_set_speed(0);
-    			enableChangeOfLeftMotorPos = true;
-    		}
+        ////////////////////////////////////////////////try adding a switch
+        switch (get_current_mode())
+        {
+             case STOP:
+            	 stopMove();
+            	 break;
+             case ANALYSE:
+            	 stopMove();
+            	 spin_angle_degree(360);
+            	 break;
+             case ALIGN:
+            	 stopMove();
+            	 set_enablePiRegulator(true);
+            	 break;
+             default:
+            	 stopMove();
         }
+
+        ////////////////////////////////////////////////try adding a switch
+
+//        if(!enableChangeOfLeftMotorPos) {
+//    		if(left_motor_get_pos() >= goalLeftMotorPos) {
+//    			goalLeftMotorPos = 0;
+//    			left_motor_set_speed(0);
+//    			right_motor_set_speed(0);
+//    			enableChangeOfLeftMotorPos = true;
+//    		}
+//        }
 
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
@@ -77,4 +97,5 @@ void stopMove(void) {
 	left_motor_set_speed(0);
 	right_motor_set_speed(0);
 	enableChangeOfLeftMotorPos = true;
+	set_enablePiRegulator(false);
 }
