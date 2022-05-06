@@ -7,15 +7,24 @@
 #include <motors.h>
 
 #include <move.h>
-#include <central_unit.h>
 #include <pi_regulator.h>
 #include <proxi.h>
+
+//List of the different mode, i.e the different tasks that the robot must perform for our application
+typedef enum {
+	STOP,
+	WAIT_MOVING,
+	ANALYSE,
+	ALIGN,
+	AVOID,
+	SPIN,
+} task_mode;
 
 #define MAX_SPIN_ANGLE		360
 
 static int32_t goalLeftMotorPos = 0;
-
 static bool enableChangeOfLeftMotorPos = true;
+static uint8_t currentModeInMove = STOP;
 
 static THD_WORKING_AREA(waStepTracker, 256);
 static THD_FUNCTION(StepTracker, arg) {
@@ -28,12 +37,15 @@ static THD_FUNCTION(StepTracker, arg) {
     while(1){
         time = chVTGetSystemTime();
 
-        ////////////////////////////////////////////////try adding a switch
-        switch (get_current_mode())
+        switch (currentModeInMove)
         {
              case STOP:
             	 stopMove();
             	 break;
+             case WAIT_MOVING:
+				 // do nothing
+            	 // we wait for the stepTracker to stop the motors
+				 break;
              case ANALYSE:
             	 stopMove();
             	 spin_angle_degree(360);
@@ -46,20 +58,23 @@ static THD_FUNCTION(StepTracker, arg) {
 	        	 stopMove();
 	        	 avoid_obstacles(200, 100);
 	        	 break;
+        	 case SPIN:
+				 stopMove();
+				 spin_angle_degree(180);
+				 break;
              default:
             	 stopMove();
         }
 
-        ////////////////////////////////////////////////try adding a switch
-
-//        if(!enableChangeOfLeftMotorPos) {
-//    		if(left_motor_get_pos() >= goalLeftMotorPos) {
-//    			goalLeftMotorPos = 0;
-//    			left_motor_set_speed(0);
-//    			right_motor_set_speed(0);
-//    			enableChangeOfLeftMotorPos = true;
-//    		}
-//        }
+        // stepTracker
+        if(!enableChangeOfLeftMotorPos) {
+    		if(left_motor_get_pos() >= goalLeftMotorPos) {
+    			goalLeftMotorPos = 0;
+    			left_motor_set_speed(0);
+    			right_motor_set_speed(0);
+    			enableChangeOfLeftMotorPos = true;
+    		}
+        }
 
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
@@ -104,6 +119,11 @@ void stopMove(void) {
 	enableChangeOfLeftMotorPos = true;
 	set_enablePiRegulator(false);
 }
+
+void update_currentModeInMove(uint8_t mode) {
+	currentModeInMove = mode;
+}
+
 // BEGIN -- Added by j.Suchet on 04.05.22
 
 void motor_stop(void) {

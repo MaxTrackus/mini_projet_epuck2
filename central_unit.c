@@ -9,8 +9,9 @@
 
 #include <central_unit.h>
 #include <process_image.h>
+#include <move.h>
 
-static uint8_t currentMode = STOP; // to add
+static uint8_t currentMode = STOP;
 
 static THD_WORKING_AREA(waCentralUnit, 256);
 static THD_FUNCTION(CentralUnit, arg) {
@@ -59,14 +60,18 @@ static THD_FUNCTION(CentralUnit, arg) {
 		if((get_selector() == 15)) {
 			currentMode = STOP;
 		}
+		if((get_selector() == 12)) {
+			currentMode = SPIN;
+		}
+		if((get_selector() == 13)) {
+			currentMode = WAIT_MOVING;
+		}
+
+		update_currentModeInMove(currentMode);
 
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
     }
-}
-
-task_mode get_current_mode(void) {
-	return currentMode;
 }
 
 void central_unit_start(void){
