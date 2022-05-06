@@ -99,3 +99,32 @@ void stopMove(void) {
 	enableChangeOfLeftMotorPos = true;
 	set_enablePiRegulator(false);
 }
+// BEGIN -- Added by j.Suchet on 04.05.22
+
+void motor_stop(void) {
+	left_motor_set_speed(0);
+	right_motor_set_speed(0);
+}
+
+void rotate_left(int speed) {
+	left_motor_set_speed(-speed);
+	right_motor_set_speed(speed);
+}
+
+void rotate_right(int speed) {
+	left_motor_set_speed(speed);
+	right_motor_set_speed(-speed);
+}
+
+void rotate_right_in_degrees(int speed, float degrees) {
+
+	float duration = abs(degrees) / MOTOR_STEP_TO_DEGREES;
+	float start_time = chVTGetSystemTime();
+	do {
+		rotate_right(speed);
+	} while (chVTGetSystemTime() < start_time + MS2ST(duration));
+
+	motor_stop();
+}
+
+// END -- Added by j.Suchet on 04.05.22
