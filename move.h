@@ -5,6 +5,7 @@ void spin_angle_degree(uint16_t angle_in_degree);
 void move_start(void);
 bool toggle_boolean(bool x);
 void stopMove(void);
+void update_currentModeInMove(uint8_t mode);
 
 void rotate_left(int speed);
 void rotate_right(int speed);
