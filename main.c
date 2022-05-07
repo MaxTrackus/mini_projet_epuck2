@@ -13,6 +13,7 @@
 #include <msgbus/messagebus.h>
 #include <spi_comm.h>
 #include <sensors/proximity.h>
+#include "sensors/VL53L0X/VL53L0X.h"
 
 
 #include <main.h>
@@ -68,6 +69,8 @@ int main(void)
     proximity_start();
     //start SPI communication
     spi_comm_start();
+    //starts the TOF thread
+    VL53L0X_start();
     //starts the serial communication
     serial_start();
 

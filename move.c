@@ -4,6 +4,8 @@
 #include <usbcfg.h>
 #include <chprintf.h>
 
+#include "sensors/VL53L0X/VL53L0X.h"
+
 #include <motors.h>
 
 #include <move.h>
@@ -18,6 +20,7 @@ typedef enum {
 	ALIGN,
 	AVOID,
 	SPIN,
+	MAINTAIN_DISTANCE,
 } task_mode;
 
 #define MAX_SPIN_ANGLE		360
@@ -65,6 +68,9 @@ static THD_FUNCTION(StepTracker, arg) {
 				 stopMove();
 				 spin_angle_degree(180);
 				 break;
+			 case MAINTAIN_DISTANCE:
+		 		 stopMove();
+		 		 maintain_distance(40, 200); //maintains the robot at 40mm from target with TOF, 200 step/s speed
              default:
             	 stopMove();
         }
@@ -180,6 +186,18 @@ void avoid_obstacles(int speed, int prox_detection_threshold) {
 	} else {
 		right_motor_set_speed(speed);
 		left_motor_set_speed(speed);
+	}
+}
+
+void maintain_distance(int distance, int speed) {
+	if (VL53L0X_get_dist_mm() > distance) {
+		right_motor_set_speed(-speed);
+		left_motor_set_speed(-speed);
+	} else if (VL53L0X_get_dist_mm() > distance) {
+		right_motor_set_speed(speed);
+		left_motor_set_speed(speed);
+	} else {
+		motor_stop();
 	}
 }
 

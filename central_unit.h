@@ -9,6 +9,7 @@ typedef enum {
 	ALIGN,
 	AVOID,
 	SPIN,
+	MAINTAIN_DISTANCE,
 } task_mode;
 
 //start the central unit thread

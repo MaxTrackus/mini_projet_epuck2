@@ -66,6 +66,9 @@ static THD_FUNCTION(CentralUnit, arg) {
 		if((get_selector() == 13)) {
 			currentMode = WAIT_MOVING;
 		}
+		if((get_selector() == 10)) {
+			currentMode = MAINTAIN_DISTANCE;
+		}
 
 		update_currentModeInMove(currentMode);
 
