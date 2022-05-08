@@ -12,7 +12,9 @@
 #include <pi_regulator.h>
 #include <proxi.h>
 
-#define MOTOR_STEP_TO_DEGREES			360 //find other name maybe
+#define MOTOR_STEP_TO_DEGREES			360 //find other name maybe\
+#define SLOW_SPEED						50
+#define	OBJECT_DIAMETER					30 //in mm				
 
 //List of the different mode, i.e the different tasks that the robot must perform for our application
 typedef enum {
@@ -33,6 +35,8 @@ static uint8_t currentModeInMove = STOP;
 //static bool rotationMappingIsOn = false;
 //static int rotationMappingValue = 0;
 static bool currentlySpinning = false;
+
+static systime_t stored_time = 0;
 
 static THD_WORKING_AREA(waStepTracker, 256);
 static THD_FUNCTION(StepTracker, arg) {
@@ -72,7 +76,8 @@ static THD_FUNCTION(StepTracker, arg) {
 				 break;
 			 case MAINTAIN_DISTANCE:
 		 		 stopMove();
-		 		 maintain_distance(40, 200); //maintains the robot at 40mm from target with TOF, 200 step/s speed
+		 		 maintain_distance(40, 200);//maintains the robot at 40mm from target with TOF, 200 step/s speed
+		 		 break;
              default:
             	 stopMove();
         }
@@ -203,7 +208,7 @@ void avoid_obstacles(int speed, int prox_detection_threshold) {
 }
 
 void maintain_distance(int distance, int speed) {
-	if (VL53L0X_get_dist_mm() > distance) {
+	if (VL53L0X_get_dist_mm() < distance) {
 		right_motor_set_speed(-speed);
 		left_motor_set_speed(-speed);
 	} else if (VL53L0X_get_dist_mm() > distance) {
@@ -214,26 +219,81 @@ void maintain_distance(int distance, int speed) {
 	}
 }
 
-float calculate_distance_from_wall(float degrees_between_points) {
+int16_t calculate_distance_from_wall(void) {
+
+	// if (stored_time == 0) {
+		current_time = chVTGetSystemTime();
+	// }
+
+	int16_t distance_to_object = VL53L0X_get_dist_mm();
+
+	do {
+		rotate_right(SLOW_SPEED);
+	} while (VL53L0X_get_dist_mm() < (distance_to_object+OBJECT_DIAMETER))
 	
-	int half_angle = degrees_between_points/2;
+	motor_stop();
+	
+	systime_t rotation_duration = chVTGetSystemTime() - current_time;
 
-	int default_speed = 200;
+	int16_t distance_from_wall = VL53L0X_get_dist_mm();
 
-	rotate_right_in_degrees(default_speed, half_angle);
+	current_time = chVTGetSystemTime();
 
-	float tof_right_value = VL53L0X_get_dist_mm();
+	do {
+		rotate_left(SLOW_SPEED);
+	} while (chVTGetSystemTime() < (current_time + rotation_duration))
 
-	rotate_left_in_degrees(default_speed, degrees_between_points);
-
-	float tof_left_value = VL53L0X_get_dist_mm();
-
-	float distance_from_wall = tof_right_value + tof_left_value; //some magic calculation
+	motor_stop();
 
 	return distance_from_wall;
 
+	
+	// int half_angle = degrees_between_points/2;
+
+	// int default_speed = 200;
+
+	// rotate_right_in_degrees(default_speed, half_angle);
+
+	// float tof_right_value = VL53L0X_get_dist_mm();
+
+	// rotate_left_in_degrees(default_speed, degrees_between_points);
+
+	// float tof_left_value = VL53L0X_get_dist_mm();
+
+	// float distance_from_wall = tof_right_value + tof_left_value; //some magic calculation
+
+	// return distance_from_wall;
+
 	// ------- OR, we just look at the measurement right on the side of the object...
 }
+
+// uint8_t motor_position_reached(void)
+// {
+//     if(state_motor == POSITION_CONTROL && position_right_reached && position_left_reached){
+//         return POSITION_REACHED;
+//     }else{
+//         return POSITION_NOT_REACHED;
+//     }
+// }
+
+// void motor_set_position(float position_r, float position_l, float speed_r, float speed_l)
+// {
+// 	//reinit global variable
+// 	counter_step_left = 0;
+// 	counter_step_right = 0;
+
+//     position_right_reached = 0;
+//     position_left_reached = 0;
+
+// 	//Set global variable with position to reach in step
+// 	position_to_reach_left = position_l * NSTEP_ONE_TURN / WHEEL_PERIMETER;
+// 	position_to_reach_right = -position_r * NSTEP_ONE_TURN / WHEEL_PERIMETER;
+
+// 	motor_set_speed(speed_r, speed_l);
+
+// 	//flag for position control, will erase flag for speed control only
+// 	state_motor = POSITION_CONTROL;
+// }
 
 // void obstacles_avoidance_algorithm(void) {
 

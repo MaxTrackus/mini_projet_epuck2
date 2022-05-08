@@ -68,7 +68,7 @@ int main(void)
 	//inits the proximity sensors
     proximity_start();
     //start SPI communication
-    spi_comm_start();
+//    spi_comm_start();
     //starts the TOF thread
     VL53L0X_start();
     //starts the serial communication
