@@ -43,10 +43,6 @@ int16_t pi_regulator(float distance, float goal){
 
 	speed = KP * error /*+ KI * sum_error*/;
 
-	if(speed < 30) {
-		speed = 0;
-	}
-
     return (int16_t)speed;
 }
 
@@ -59,7 +55,7 @@ static THD_FUNCTION(PiRegulator, arg) {
     systime_t time;
 
     int16_t speed = 0;
-//    int16_t speed_correction = 0;
+    int16_t speed_correction = 0;
 
     while(1){
         time = chVTGetSystemTime();
@@ -74,7 +70,9 @@ static THD_FUNCTION(PiRegulator, arg) {
 				right_motor_set_speed(-speed);
 				left_motor_set_speed(speed);
 
-				if(speed < 50) {
+//				chprintf((BaseSequentialStream *)&SD3, "v=%d", speed);
+
+				if(speed < 5) {
 					++regulationCompletedCounter;
 				}
 				else {
@@ -87,6 +85,17 @@ static THD_FUNCTION(PiRegulator, arg) {
 				break;
 			case PURSUIT_CORRECTION:
 				// must do something
+				//computes a correction factor to let the robot rotate to be in front of the line
+				speed_correction = (get_line_position() - (IMAGE_BUFFER_SIZE/2));
+
+				//if the line is nearly in front of the camera, don't rotate
+				if(abs(speed_correction) < ROTATION_THRESHOLD){
+					speed_correction = 0;
+				}
+
+				//applies the speed from the PI regulator and the correction for the rotation
+				right_motor_set_speed(500 - ROTATION_COEFF * speed_correction);
+				left_motor_set_speed(500 + ROTATION_COEFF * speed_correction);
 				break;
 			default:
 				regulationCompletedCounter = 0;

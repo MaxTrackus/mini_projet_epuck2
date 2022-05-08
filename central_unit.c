@@ -50,25 +50,19 @@ static THD_FUNCTION(CentralUnit, arg) {
 			} else {
 				lostLineCounter = 0;
 			}
-			if(lostLineCounter == 20) {
-				currentMode = WAIT_MOVING;
+			if(lostLineCounter == 100) {
+				currentMode = STOP;
 			}
 			if(get_lineWidth() > (uint16_t)(350)) {
 				set_led(LED5, 1);
+				currentMode = STOP;
 			} else {
 				set_led(LED5, 0);
 			}
 		}
 		else {
 			set_led(LED3, 0);
-		}
-
-		//wait_moving mode
-		if(currentMode == WAIT_MOVING) {
-			set_led(LED7, 1);
-		}
-		else {
-			set_led(LED7, 0);
+			set_led(LED5, 0);
 		}
 
 		//from idle to analyseMode
@@ -92,7 +86,7 @@ static THD_FUNCTION(CentralUnit, arg) {
 			currentMode = AVOID;
 		}
 		//stop and idle
-		if((get_selector() == 0)) {
+		if((get_selector() == 15)) {
 			currentMode = STOP;
 		}
 

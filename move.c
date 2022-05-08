@@ -66,12 +66,13 @@ static THD_FUNCTION(StepTracker, arg) {
         	 case PURSUIT:
         		 stopMove();
         		 // do nothing yet
+        		 set_currentRegulatorMode(PURSUIT_CORRECTION);
 	        	 break;
              default:
             	 stopMove();
         }
 
-        if(!(currentModeInMove == ALIGN)) {
+        if((!(currentModeInMove == ALIGN)) && (!(currentModeInMove == PURSUIT))) {
         	set_currentRegulatorMode(NOTHING);
         }
 
