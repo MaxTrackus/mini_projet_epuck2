@@ -12,6 +12,8 @@
 #include <pi_regulator.h>
 #include <proxi.h>
 
+#define MOTOR_STEP_TO_DEGREES			360 //find other name maybe
+
 //List of the different mode, i.e the different tasks that the robot must perform for our application
 typedef enum {
 	STOP,
@@ -164,16 +166,27 @@ void rotate_right(int speed) {
 	right_motor_set_speed(-speed);
 }
 
-// void rotate_right_in_degrees(int speed, float degrees) {
+void rotate_right_in_degrees(int speed, float degrees) {
 
-// //	float duration = abs(degrees) / MOTOR_STEP_TO_DEGREES;
-// //	float start_time = chVTGetSystemTime();
-// //	do {
-// //		rotate_right(speed);
-// //	} while (chVTGetSystemTime() < start_time + MS2ST(duration));
-// //
-// //	motor_stop();
-// }
+	float duration = (degrees) * (speed/MOTOR_STEP_TO_DEGREES);
+	float start_time = chVTGetSystemTime();
+	do {
+		rotate_right(speed);
+	} while (chVTGetSystemTime() < start_time + MS2ST(duration));
+
+	motor_stop();
+}
+
+void rotate_left_in_degrees(int speed, float degrees) {
+
+	float duration = (degrees) * (speed/MOTOR_STEP_TO_DEGREES);
+	float start_time = chVTGetSystemTime();
+	do {
+		rotate_left(speed);
+	} while (chVTGetSystemTime() < start_time + MS2ST(duration));
+
+	motor_stop();
+}
 
 void avoid_obstacles(int speed, int prox_detection_threshold) {
 
@@ -199,6 +212,23 @@ void maintain_distance(int distance, int speed) {
 	} else {
 		motor_stop();
 	}
+}
+
+float calculate_distance_from_wall(float degrees_between_points) {
+	
+	int half_angle = degrees_between_points/2;
+
+	rotate_right_in_degrees(half_angle);
+
+	float tof_right_value = VL53L0X_get_dist_mm();
+
+	rotate_left_in_degrees(degrees_between_points);
+
+	float tof_left_value = VL53L0X_get_dist_mm();
+
+	float distance_from_wall; //some magic calculation
+
+	// ------- OR, we just look at the measurement right on the side of the object...
 }
 
 // void obstacles_avoidance_algorithm(void) {
