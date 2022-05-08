@@ -95,14 +95,14 @@ static THD_FUNCTION(ReadProx, arg) {
 			prox_value[i] = get_calibrated_prox(i);
 		}	
 
-		// --- USED FOR TESTINGS ----
-		// bool *sensors_table = get_prox_activation_status(PROX_DETECTION_THRESHOLD);
+		 //--- USED FOR TESTINGS ----
+		 bool *sensors_table = get_prox_activation_status(PROX_DETECTION_THRESHOLD);
 
-		// if (sensors_table[PROX_RIGHT]) {
-		// 	set_led_with_int(PROX_RIGHT);
-		// } else {
-		// 	clear_led_with_int(PROX_RIGHT);
-		// }
+		 if (sensors_table[PROX_RIGHT]) {
+		 	set_led_with_int(PROX_RIGHT);
+		 } else {
+		 	clear_led_with_int(PROX_RIGHT);
+		 }
 
     	//100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
