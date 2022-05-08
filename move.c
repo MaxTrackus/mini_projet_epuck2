@@ -57,7 +57,7 @@ static THD_FUNCTION(StepTracker, arg) {
             	 break;
              case ALIGN:
             	 stopMove();
-            	 set_enablePiRegulator(true);
+            	 set_currentRegulatorMode(ALIGN_ROTATION);
             	 break;
         	 case AVOID:
 	        	 stopMove();
@@ -72,7 +72,7 @@ static THD_FUNCTION(StepTracker, arg) {
         }
 
         if(!(currentModeInMove == ALIGN)) {
-        	set_enablePiRegulator(false);
+        	set_currentRegulatorMode(NOTHING);
         }
 
         // rotationMapping

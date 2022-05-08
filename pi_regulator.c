@@ -8,7 +8,10 @@
 #include <main.h> // pour les defines mais c'est tout pas censé normalement
 #include <process_image.h> // besoin pour avoir la line position mais pas censé on devrait changer
 
-static bool enablePiRegulator = false;
+static bool enablePiRegulator = false; // to be removed
+
+static regulation_mode currentRegulatorMode = NOTHING;
+
 static uint8_t regulationCompletedCounter = 0;
 static bool regulationCompleted = false;
 
@@ -61,28 +64,55 @@ static THD_FUNCTION(PiRegulator, arg) {
     while(1){
         time = chVTGetSystemTime();
 
-        if(enablePiRegulator) {
-        	speed = pi_regulator((float)get_line_position(), (IMAGE_BUFFER_SIZE/2));
-        	right_motor_set_speed(-speed);
-        	left_motor_set_speed(speed);
-
-        	chprintf((BaseSequentialStream *)&SD3, "speed=%d", speed);
-
-        	if(speed < 50) {
-        		++regulationCompletedCounter;
-        	}
-        	else {
+        switch (currentRegulatorMode) {
+        	case NOTHING:
         		regulationCompletedCounter = 0;
-        	}
+        		regulationCompleted = false;
+        		break;
+			case ALIGN_ROTATION:
+				speed = pi_regulator((float)get_line_position(), (IMAGE_BUFFER_SIZE/2));
+				right_motor_set_speed(-speed);
+				left_motor_set_speed(speed);
 
-        	if(regulationCompletedCounter == 200) {
-        		regulationCompleted = true;
-        	}
+				if(speed < 50) {
+					++regulationCompletedCounter;
+				}
+				else {
+					regulationCompletedCounter = 0;
+				}
+
+				if(regulationCompletedCounter == 200) {
+					regulationCompleted = true;
+				}
+				break;
+			case PURSUIT_CORRECTION:
+				// must do something
+				break;
+			default:
+				regulationCompletedCounter = 0;
+				regulationCompleted = false;
         }
-        else {
-        	regulationCompletedCounter = 0;
-        	regulationCompleted = false;
-        }
+
+//        if(enablePiRegulator) {
+//        	speed = pi_regulator((float)get_line_position(), (IMAGE_BUFFER_SIZE/2));
+//        	right_motor_set_speed(-speed);
+//        	left_motor_set_speed(speed);
+//
+//        	if(speed < 50) {
+//        		++regulationCompletedCounter;
+//        	}
+//        	else {
+//        		regulationCompletedCounter = 0;
+//        	}
+//
+//        	if(regulationCompletedCounter == 200) {
+//        		regulationCompleted = true;
+//        	}
+//        }
+//        else {
+//        	regulationCompletedCounter = 0;
+//        	regulationCompleted = false;
+//        }
 
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
@@ -93,9 +123,15 @@ bool get_regulationCompleted(void) {
 	return regulationCompleted;
 }
 
+void set_currentRegulatorMode(regulation_mode mode) {
+	currentRegulatorMode = mode;
+}
+
+///////////////////////////////////////////////////////////////////to be removed
 void set_enablePiRegulator(bool status) {
 	enablePiRegulator = status;
 }
+///////////////////////////////////////////////////////////////////to be removed
 
 void pi_regulator_start(void){
 	chThdCreateStatic(waPiRegulator, sizeof(waPiRegulator), NORMALPRIO, PiRegulator, NULL);
