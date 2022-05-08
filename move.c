@@ -64,6 +64,7 @@ static THD_FUNCTION(StepTracker, arg) {
 	        	 avoid_obstacles(200, 100);
 	        	 break;
         	 case PURSUIT:
+        		 stopMove();
         		 // do nothing yet
 	        	 break;
              default:

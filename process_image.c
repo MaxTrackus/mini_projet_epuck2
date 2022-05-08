@@ -11,6 +11,7 @@
 
 static float distance_cm = 0;
 static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//middle
+static uint16_t lineWidth = 0;
 
 static bool staticFoundLine = false;
 
@@ -134,7 +135,7 @@ static THD_FUNCTION(ProcessImage, arg) {
 
 	uint8_t *img_buff_ptr;
 	uint8_t image[IMAGE_BUFFER_SIZE] = {0};
-	uint16_t lineWidth = 0;
+//	uint16_t lineWidth = 0;
 
 	bool send_to_computer = true;
 
@@ -167,6 +168,10 @@ static THD_FUNCTION(ProcessImage, arg) {
 		send_to_computer = !send_to_computer;
 
     }
+}
+
+uint16_t get_lineWidth(void) {
+	return lineWidth;
 }
 
 bool get_staticFoundLine(void) {

@@ -10,8 +10,10 @@
 #include <central_unit.h>
 #include <process_image.h>
 #include <move.h>
+#include <pi_regulator.h>
 
 static uint8_t currentMode = STOP;
+static uint8_t lostLineCounter = 0;
 
 static THD_WORKING_AREA(waCentralUnit, 256);
 static THD_FUNCTION(CentralUnit, arg) {
@@ -43,13 +45,34 @@ static THD_FUNCTION(CentralUnit, arg) {
 		//pursuitMode
 		if(currentMode == PURSUIT) {
 			set_led(LED3, 1);
+			if(get_staticFoundLine() == false) {
+				++lostLineCounter;
+			} else {
+				lostLineCounter = 0;
+			}
+			if(lostLineCounter == 20) {
+				currentMode = WAIT_MOVING;
+			}
+			if(get_lineWidth() > (uint16_t)(350)) {
+				set_led(LED5, 1);
+			} else {
+				set_led(LED5, 0);
+			}
 		}
 		else {
 			set_led(LED3, 0);
 		}
 
+		//wait_moving mode
+		if(currentMode == WAIT_MOVING) {
+			set_led(LED7, 1);
+		}
+		else {
+			set_led(LED7, 0);
+		}
+
 		//from idle to analyseMode
-		if((get_selector() == 1) && !(currentMode == ALIGN) && !(currentMode == PURSUIT)) {
+		if((get_selector() == 1) && !(currentMode == ALIGN) && !(currentMode == PURSUIT) && !(currentMode == WAIT_MOVING)) {
 			currentMode = ANALYSE;
 		}
 		//from analyseMode to alignementMode

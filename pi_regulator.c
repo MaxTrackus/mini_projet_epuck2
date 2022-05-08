@@ -40,6 +40,10 @@ int16_t pi_regulator(float distance, float goal){
 
 	speed = KP * error /*+ KI * sum_error*/;
 
+	if(speed < 30) {
+		speed = 0;
+	}
+
     return (int16_t)speed;
 }
 
