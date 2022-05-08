@@ -17,6 +17,7 @@ typedef enum {
 	ANALYSE,
 	ALIGN,
 	AVOID,
+	PURSUIT,
 } task_mode;
 
 #define MAX_SPIN_ANGLE		360
@@ -62,8 +63,15 @@ static THD_FUNCTION(StepTracker, arg) {
 	        	 stopMove();
 	        	 avoid_obstacles(200, 100);
 	        	 break;
+        	 case PURSUIT:
+        		 // do nothing yet
+	        	 break;
              default:
             	 stopMove();
+        }
+
+        if(!(currentModeInMove == ALIGN)) {
+        	set_enablePiRegulator(false);
         }
 
         // rotationMapping
@@ -77,8 +85,6 @@ static THD_FUNCTION(StepTracker, arg) {
         	enableCallsOfFunctionThatUseStepTracker = true;
         	rotationMappingValue = rotationMappingValue + left_motor_get_pos();
         }
-
-        chprintf((BaseSequentialStream *)&SD3, "test=%d", rotationMappingValue);
 
         // stepTracker for spinning
         if(currentlySpinning) {

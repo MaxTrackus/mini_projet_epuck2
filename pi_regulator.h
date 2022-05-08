@@ -1,6 +1,7 @@
 #ifndef PI_REGULATOR_H
 #define PI_REGULATOR_H
 
+bool get_regulationCompleted(void);
 void set_enablePiRegulator(bool status);
 
 //start the PI regulator thread

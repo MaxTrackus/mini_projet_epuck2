@@ -8,6 +8,7 @@ typedef enum {
 	ANALYSE,
 	ALIGN,
 	AVOID,
+	PURSUIT,
 } task_mode;
 
 //start the central unit thread

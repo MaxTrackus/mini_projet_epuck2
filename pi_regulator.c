@@ -9,6 +9,8 @@
 #include <process_image.h> // besoin pour avoir la line position mais pas censé on devrait changer
 
 static bool enablePiRegulator = false;
+static uint8_t regulationCompletedCounter = 0;
+static bool regulationCompleted = false;
 
 //simple PI regulator implementation
 int16_t pi_regulator(float distance, float goal){
@@ -59,11 +61,32 @@ static THD_FUNCTION(PiRegulator, arg) {
         	speed = pi_regulator((float)get_line_position(), (IMAGE_BUFFER_SIZE/2));
         	right_motor_set_speed(-speed);
         	left_motor_set_speed(speed);
+
+        	chprintf((BaseSequentialStream *)&SD3, "speed=%d", speed);
+
+        	if(speed < 50) {
+        		++regulationCompletedCounter;
+        	}
+        	else {
+        		regulationCompletedCounter = 0;
+        	}
+
+        	if(regulationCompletedCounter == 200) {
+        		regulationCompleted = true;
+        	}
+        }
+        else {
+        	regulationCompletedCounter = 0;
+        	regulationCompleted = false;
         }
 
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
     }
+}
+
+bool get_regulationCompleted(void) {
+	return regulationCompleted;
 }
 
 void set_enablePiRegulator(bool status) {
