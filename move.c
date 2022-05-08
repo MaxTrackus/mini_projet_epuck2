@@ -17,7 +17,6 @@ typedef enum {
 	ANALYSE,
 	ALIGN,
 	AVOID,
-	SPIN,
 } task_mode;
 
 #define MAX_SPIN_ANGLE		360
@@ -25,8 +24,10 @@ typedef enum {
 static int32_t goalLeftMotorPos = 0;
 static bool enableCallsOfFunctionThatUseStepTracker = true;
 static uint8_t currentModeInMove = STOP;
-//static bool rotationMappingIsOn = false;
-//static int rotationMappingValue = 0;
+
+static bool rotationMappingIsOn = false;
+static int rotationMappingValue = 0;
+
 static bool currentlySpinning = false;
 
 static THD_WORKING_AREA(waStepTracker, 256);
@@ -61,25 +62,23 @@ static THD_FUNCTION(StepTracker, arg) {
 	        	 stopMove();
 	        	 avoid_obstacles(200, 100);
 	        	 break;
-        	 case SPIN:
-				 stopMove();
-				 spin_angle_degree(180);
-				 break;
              default:
             	 stopMove();
         }
 
         // rotationMapping
-//        if(((currentModeInMove == ANALYSE) || (currentModeInMove == ALIGN)) && !rotationMappingIsOn) {
-//        	rotationMappingIsOn = true;
-//        	enableCallsOfFunctionThatUseStepTracker = false;
-//        	left_motor_set_pos(rotationMappingValue);
-//        }
-//        if(!(currentModeInMove == ANALYSE) && !(currentModeInMove == ALIGN) && rotationMappingIsOn) {
-//        	rotationMappingIsOn = false;
-//        	enableCallsOfFunctionThatUseStepTracker = true;
-//        	rotationMappingValue = left_motor_get_pos();
-//        }
+        if(((currentModeInMove == ANALYSE) || (currentModeInMove == ALIGN)) && !rotationMappingIsOn) {
+        	rotationMappingIsOn = true;
+        	enableCallsOfFunctionThatUseStepTracker = false;
+        	left_motor_set_pos(0);
+        }
+        if(!(currentModeInMove == ANALYSE) && !(currentModeInMove == ALIGN) && rotationMappingIsOn) {
+        	rotationMappingIsOn = false;
+        	enableCallsOfFunctionThatUseStepTracker = true;
+        	rotationMappingValue = rotationMappingValue + left_motor_get_pos();
+        }
+
+        chprintf((BaseSequentialStream *)&SD3, "test=%d", rotationMappingValue);
 
         // stepTracker for spinning
         if(currentlySpinning) {

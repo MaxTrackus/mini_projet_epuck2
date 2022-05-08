@@ -41,7 +41,7 @@ static THD_FUNCTION(CentralUnit, arg) {
 		}
 
 		//from idle to analyseMode
-		if((get_selector() == 1) && (currentMode == STOP)) {
+		if(get_selector() == 1) {
 			currentMode = ANALYSE;
 		}
 		//from analyseMode to alignementMode
@@ -57,14 +57,8 @@ static THD_FUNCTION(CentralUnit, arg) {
 			currentMode = AVOID;
 		}
 		//stop and idle
-		if((get_selector() == 15)) {
+		if((get_selector() == 0)) {
 			currentMode = STOP;
-		}
-		if((get_selector() == 12)) {
-			currentMode = SPIN;
-		}
-		if((get_selector() == 13)) {
-			currentMode = WAIT_MOVING;
 		}
 
 		update_currentModeInMove(currentMode);
