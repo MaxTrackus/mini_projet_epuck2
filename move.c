@@ -218,15 +218,19 @@ float calculate_distance_from_wall(float degrees_between_points) {
 	
 	int half_angle = degrees_between_points/2;
 
-	rotate_right_in_degrees(half_angle);
+	int default_speed = 200;
+
+	rotate_right_in_degrees(default_speed, half_angle);
 
 	float tof_right_value = VL53L0X_get_dist_mm();
 
-	rotate_left_in_degrees(degrees_between_points);
+	rotate_left_in_degrees(default_speed, degrees_between_points);
 
 	float tof_left_value = VL53L0X_get_dist_mm();
 
-	float distance_from_wall; //some magic calculation
+	float distance_from_wall = tof_right_value + tof_left_value; //some magic calculation
+
+	return distance_from_wall;
 
 	// ------- OR, we just look at the measurement right on the side of the object...
 }
