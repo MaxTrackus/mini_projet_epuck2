@@ -66,8 +66,8 @@ int main(void)
 	motors_init();
 	//inits the proximity sensors
     proximity_start();
-    //start SPI communication
-    spi_comm_start();
+//    //start SPI communication
+//    spi_comm_start();
     //starts the serial communication
     serial_start();
 
