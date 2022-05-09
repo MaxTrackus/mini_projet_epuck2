@@ -13,6 +13,7 @@ void rotate_right_in_degrees(int speed, float degrees);
 void rotate_left_in_degrees(int speed, float degrees);
 void motor_stop(void);
 void move_straight(int speed, int distance_in_mm);
+int calculate_distance_from_wall(void);
 
 void avoid_obstacles(int speed, int prox_detection_threshold);
 
