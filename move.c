@@ -12,9 +12,26 @@
 #include <pi_regulator.h>
 #include <proxi.h>
 
-#define MOTOR_STEP_TO_DEGREES			360 //find other name maybe\
-#define SLOW_SPEED						50
-#define	OBJECT_DIAMETER					30 //in mm				
+#define MOTOR_STEP_TO_DEGREES			360 //find other name maybe
+#define SLOW_SPEED						50 // [steps/s]
+#define	OBJECT_DIAMETER					30 // [mm]	
+#define MAX_MOTOR_SPEED					1100 // [steps/s]
+
+#define DEFAULT_SPEED					200 // [steps/s]
+
+// #define POSITION_NOT_REACHED			0
+// #define POSITION_REACHED       			1	
+// #define MOTOR_SPEED_LIMIT   13 // [cm/s]
+#define NSTEP_ONE_TURN      			1000 // number of step for 1 turn of the motor
+// #define NSTEP_ONE_EL_TURN   4  //number of steps to do 1 electrical turn
+// #define NB_OF_PHASES        4  //number of phases of the motors
+#define WHEEL_PERIMETER     			130 // [mm]
+
+// static int16_t position_to_reach_right = 0;	    // in [step]
+// static int16_t position_to_reach_left = 0;	    // in [step]
+// static uint8_t position_right_reached = 0;
+// static uint8_t position_left_reached = 0;
+// static uint8_t state_motor = 0;		
 
 //List of the different mode, i.e the different tasks that the robot must perform for our application
 typedef enum {
@@ -36,7 +53,7 @@ static uint8_t currentModeInMove = STOP;
 //static int rotationMappingValue = 0;
 static bool currentlySpinning = false;
 
-static systime_t stored_time = 0;
+//static systime_t stored_time = 0;
 
 static THD_WORKING_AREA(waStepTracker, 256);
 static THD_FUNCTION(StepTracker, arg) {
@@ -193,6 +210,31 @@ void rotate_left_in_degrees(int speed, float degrees) {
 	motor_stop();
 }
 
+void move_straight(int speed, int distance_in_mm) {
+
+	speed = motor_speed_protection(speed);
+
+	systime_t duration = ((distance_in_mm)/((speed/NSTEP_ONE_TURN)*WHEEL_PERIMETER))/1000; // 1000 convert sec. -> msec.
+
+	systime_t start_time = chVTGetSystemTime();
+
+	do {
+		right_motor_set_speed(speed);
+		left_motor_set_speed(speed);
+	} while (chVTGetSystemTime() < (start_time + MS2ST(duration)));
+
+	motor_stop();
+}
+
+int motor_speed_protection(int speed) {
+	if (speed > MAX_MOTOR_SPEED) {
+		speed = MAX_MOTOR_SPEED;
+	} else if (speed < -MAX_MOTOR_SPEED) {
+		speed = -MAX_MOTOR_SPEED;
+	}
+	return speed;
+}
+
 void avoid_obstacles(int speed, int prox_detection_threshold) {
 
 	bool *prox_status_table = get_prox_activation_status(prox_detection_threshold);
@@ -222,14 +264,14 @@ void maintain_distance(int distance, int speed) {
 int16_t calculate_distance_from_wall(void) {
 
 	// if (stored_time == 0) {
-		current_time = chVTGetSystemTime();
+		systime_t current_time = chVTGetSystemTime();
 	// }
 
 	int16_t distance_to_object = VL53L0X_get_dist_mm();
 
 	do {
 		rotate_right(SLOW_SPEED);
-	} while (VL53L0X_get_dist_mm() < (distance_to_object+OBJECT_DIAMETER))
+	} while (VL53L0X_get_dist_mm() < (distance_to_object+OBJECT_DIAMETER));
 	
 	motor_stop();
 	
@@ -241,7 +283,7 @@ int16_t calculate_distance_from_wall(void) {
 
 	do {
 		rotate_left(SLOW_SPEED);
-	} while (chVTGetSystemTime() < (current_time + rotation_duration))
+	} while (chVTGetSystemTime() < (current_time + rotation_duration));
 
 	motor_stop();
 
