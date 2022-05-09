@@ -4,7 +4,7 @@
 #include <usbcfg.h>
 #include <chprintf.h>
 
-#include "sensors/VL53L0X/VL53L0X.h"
+#include <sensors/VL53L0X/VL53L0X.h>
 
 #include <motors.h>
 
@@ -13,11 +13,12 @@
 #include <proxi.h>
 
 #define MOTOR_STEP_TO_DEGREES			360 //find other name maybe
-#define SLOW_SPEED						50 // [steps/s]
-#define	OBJECT_DIAMETER					30 // [mm]	
+
+
 #define MAX_MOTOR_SPEED					1100 // [steps/s]
 
 #define DEFAULT_SPEED					200 // [steps/s]
+#define SEC2MSEC						1000
 
 // #define POSITION_NOT_REACHED			0
 // #define POSITION_REACHED       			1	
@@ -52,7 +53,7 @@ static uint8_t currentModeInMove = STOP;
 //static bool rotationMappingIsOn = false;
 //static int rotationMappingValue = 0;
 static bool currentlySpinning = false;
-static int distanceToTravel = 0;
+// static int distanceToTravel = 0;
 
 //static systime_t stored_time = 0;
 
@@ -94,11 +95,11 @@ static THD_FUNCTION(StepTracker, arg) {
 				 break;
 			 case MAINTAIN_DISTANCE:
 		 		 stopMove();
-		 		 if (distanceToTravel == 0) {
-		 		 	distanceToTravel = calculate_distance_from_wall();
-		 		 }
-		 		 //maintain_distance(40, 200);//maintains the robot at 40mm from target with TOF, 200 step/s speed
-		 		 move_straight(DEFAULT_SPEED,distanceToTravel);
+		 		 // if (distanceToTravel == 0) {
+		 		 // 	distanceToTravel = calculate_distance_from_wall();
+		 		 // }
+		 		 // //maintain_distance(40, 200);//maintains the robot at 40mm from target with TOF, 200 step/s speed
+		 		 // move_straight(DEFAULT_SPEED,distanceToTravel);
 		 		 break;
              default:
             	 stopMove();
@@ -219,7 +220,7 @@ void move_straight(int speed, int distance_in_mm) {
 
 	speed = motor_speed_protection(speed);
 
-	volatile int duration = ((distance_in_mm*1000)/((speed/NSTEP_ONE_TURN)*WHEEL_PERIMETER)); // 1000 convert sec. -> msec.
+	volatile int duration = ((distance_in_mm*SEC2MSEC)/((speed/NSTEP_ONE_TURN)*WHEEL_PERIMETER)); // SEC2MSEC convert sec. -> msec.
 
 	volatile systime_t start_time = chVTGetSystemTime();
 
@@ -267,53 +268,7 @@ void maintain_distance(int distance, int speed) {
 	}
 }
 
-int calculate_distance_from_wall(void) {
 
-	// if (stored_time == 0) {
-		systime_t current_time = chVTGetSystemTime();
-	// }
-
-	int distance_to_object = VL53L0X_get_dist_mm();
-
-	do {
-		rotate_right(SLOW_SPEED);
-	} while (VL53L0X_get_dist_mm() < (distance_to_object+OBJECT_DIAMETER));
-	
-	motor_stop();
-	
-	systime_t rotation_duration = chVTGetSystemTime() - current_time;
-
-	volatile int distance_from_wall = VL53L0X_get_dist_mm();
-
-	current_time = chVTGetSystemTime();
-
-	do {
-		rotate_left(SLOW_SPEED);
-	} while (chVTGetSystemTime() < (current_time + rotation_duration));
-
-	motor_stop();
-
-	return distance_from_wall;
-
-	
-	// int half_angle = degrees_between_points/2;
-
-	// int default_speed = 200;
-
-	// rotate_right_in_degrees(default_speed, half_angle);
-
-	// float tof_right_value = VL53L0X_get_dist_mm();
-
-	// rotate_left_in_degrees(default_speed, degrees_between_points);
-
-	// float tof_left_value = VL53L0X_get_dist_mm();
-
-	// float distance_from_wall = tof_right_value + tof_left_value; //some magic calculation
-
-	// return distance_from_wall;
-
-	// ------- OR, we just look at the measurement right on the side of the object...
-}
 
 // uint8_t motor_position_reached(void)
 // {

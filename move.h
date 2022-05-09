@@ -1,6 +1,8 @@
 #ifndef MOVE_H
 #define MOVE_H
 
+#define SLOW_SPEED						50 // [steps/s]
+
 void spin_angle_degree(uint16_t angle_in_degree);
 void move_start(void);
 bool toggle_boolean(bool x);
@@ -13,7 +15,6 @@ void rotate_right_in_degrees(int speed, float degrees);
 void rotate_left_in_degrees(int speed, float degrees);
 void motor_stop(void);
 void move_straight(int speed, int distance_in_mm);
-int calculate_distance_from_wall(void);
 
 void avoid_obstacles(int speed, int prox_detection_threshold);
 

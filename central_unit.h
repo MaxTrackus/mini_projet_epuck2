@@ -15,4 +15,7 @@ typedef enum {
 //start the central unit thread
 void central_unit_start(void);
 
+int calculate_distance_from_wall(void);
+
+
 #endif /* CENTRAL_UNIT_H */
