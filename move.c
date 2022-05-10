@@ -10,15 +10,6 @@
 #include <pi_regulator.h>
 #include <proxi.h>
 
-//List of the different mode, i.e the different tasks that the robot must perform for our application
-typedef enum {
-	STOP,
-	WAIT_MOVING,
-	ANALYSE,
-	ALIGN,
-	AVOID,
-} task_mode;
-
 #define MAX_SPIN_ANGLE		360
 
 static int32_t goalLeftMotorPos = 0;
