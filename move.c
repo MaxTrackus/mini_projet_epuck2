@@ -14,6 +14,16 @@
 #define DEFAULT_SPEED					200	
 #define PROX_DETECTION_THRESHOLD		100
 
+#define MOTOR_STEP_TO_DEGREES			360 //find other name maybe
+
+#define MAX_MOTOR_SPEED					1100 // [steps/s]
+
+#define DEFAULT_SPEED					200 // [steps/s]
+#define SEC2MSEC						1000
+
+#define NSTEP_ONE_TURN      			100 // number of step for 1 turn of the motor
+#define WHEEL_PERIMETER     			130 // [mm]
+
 static int32_t goalLeftMotorPos = 0;
 static bool enableCallsOfFunctionThatUseStepTracker = true;
 static uint8_t currentModeInMove = STOP;

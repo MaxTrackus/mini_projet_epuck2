@@ -1,6 +1,8 @@
 #ifndef MOVE_H
 #define MOVE_H
 
+#define SLOW_SPEED						50 // [steps/s]
+
 //List of the different mode, i.e the different tasks that the robot must perform for our application
 typedef enum {
 	STOP,
@@ -8,6 +10,7 @@ typedef enum {
 	ANALYSE,
 	ALIGN,
 	AVOID,
+	MOVE_STRAIGHT,
 } task_mode;
 
 void spin_angle_degree(uint16_t angle_in_degree);
@@ -22,7 +25,7 @@ void rotate_right(int speed);
 void motor_stop(void);
 void avoid_obstacles(int speed, int prox_detection_threshold);
 
-void move_straight(int speed)
+void move_straight(int speed);
 int motor_speed_protection(int speed);
 void rotate_left_in_degrees(int speed, float degrees);
 void rotate_right_in_degrees(int speed, float degrees);
