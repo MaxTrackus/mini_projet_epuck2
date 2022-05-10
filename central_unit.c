@@ -34,13 +34,13 @@ static THD_FUNCTION(CentralUnit, arg) {
 			set_body_led(0);
 		}
 
-		//alignementMode
-		if(currentMode == ALIGN) {
-			set_front_led(1);
-		}
-		else {
-			set_front_led(0);
-		}
+//		//alignementMode
+//		if(currentMode == ALIGN) {
+//			set_front_led(1);
+//		}
+//		else {
+//			set_front_led(0);
+//		}
 
 		//pursuitMode
 		if(currentMode == PURSUIT) {
@@ -53,7 +53,7 @@ static THD_FUNCTION(CentralUnit, arg) {
 			if(lostLineCounter == 100) {
 				currentMode = STOP;
 			}
-			if(get_lineWidth() > (uint16_t)(350)) {
+			if(get_lineWidth() > (uint16_t)(400)) {
 				set_led(LED5, 1);
 				currentMode = STOP;
 			} else {

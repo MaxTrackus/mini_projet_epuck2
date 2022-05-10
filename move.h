@@ -1,6 +1,16 @@
 #ifndef MOVE_H
 #define MOVE_H
 
+//List of the different mode, i.e the different tasks that the robot must perform for our application
+typedef enum {
+	STOP,
+	WAIT_MOVING,
+	ANALYSE,
+	ALIGN,
+	AVOID,
+	PURSUIT,
+} task_mode;
+
 void spin_angle_degree(uint16_t angle_in_degree);
 void move_start(void);
 bool toggle_boolean(bool x);

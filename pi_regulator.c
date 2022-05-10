@@ -70,8 +70,6 @@ static THD_FUNCTION(PiRegulator, arg) {
 				right_motor_set_speed(-speed);
 				left_motor_set_speed(speed);
 
-//				chprintf((BaseSequentialStream *)&SD3, "v=%d", speed);
-
 				if(speed < 5) {
 					++regulationCompletedCounter;
 				}
