@@ -10,7 +10,9 @@
 #include <pi_regulator.h>
 #include <proxi.h>
 
-#define MAX_SPIN_ANGLE		360
+#define MAX_SPIN_ANGLE					360
+#define DEFAULT_SPEED					200	
+#define PROX_DETECTION_THRESHOLD		100
 
 static int32_t goalLeftMotorPos = 0;
 static bool enableCallsOfFunctionThatUseStepTracker = true;
@@ -51,9 +53,12 @@ static THD_FUNCTION(StepTracker, arg) {
             	 break;
         	 case AVOID:
 	        	 stopMove();
-	        	 avoid_obstacles(200, 100);
+	        	 avoid_obstacles(DEFAULT_SPEED, PROX_DETECTION_THRESHOLD);
 	        	 break;
-             default:
+ 			 case MOVE_STRAIGHT:
+ 			 	 move_straight(DEFAULT_SPEED);
+ 			 	 break;
+ 			 default:
             	 stopMove();
         }
 
@@ -148,16 +153,44 @@ void rotate_right(int speed) {
 	right_motor_set_speed(-speed);
 }
 
-// void rotate_right_in_degrees(int speed, float degrees) {
+void move_straight(int speed) {
+	speed = motor_speed_protection(speed);
 
-// //	float duration = abs(degrees) / MOTOR_STEP_TO_DEGREES;
-// //	float start_time = chVTGetSystemTime();
-// //	do {
-// //		rotate_right(speed);
-// //	} while (chVTGetSystemTime() < start_time + MS2ST(duration));
-// //
-// //	motor_stop();
-// }
+	right_motor_set_speed(speed);
+	left_motor_set_speed(speed);
+}
+
+void rotate_right_in_degrees(int speed, float degrees) {
+
+	float duration = (degrees) * (speed/MOTOR_STEP_TO_DEGREES);
+	float start_time = chVTGetSystemTime();
+	do {
+		rotate_right(speed);
+	} while (chVTGetSystemTime() < start_time + MS2ST(duration));
+
+	motor_stop();
+}
+
+void rotate_left_in_degrees(int speed, float degrees) {
+
+	float duration = (degrees) * (speed/MOTOR_STEP_TO_DEGREES);
+	float start_time = chVTGetSystemTime();
+	do {
+		rotate_left(speed);
+	} while (chVTGetSystemTime() < start_time + MS2ST(duration));
+
+	motor_stop();
+}
+
+
+int motor_speed_protection(int speed) {
+	if (speed > MAX_MOTOR_SPEED) {
+		speed = MAX_MOTOR_SPEED;
+	} else if (speed < -MAX_MOTOR_SPEED) {
+		speed = -MAX_MOTOR_SPEED;
+	}
+	return speed;
+}
 
 void avoid_obstacles(int speed, int prox_detection_threshold) {
 

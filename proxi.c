@@ -19,8 +19,6 @@
 
 // #define MOTOR_STEP_TO_DEGREES			2.7
 
-#define PROX_DETECTION_THRESHOLD		100
-
 #define NB_PROX_SENSORS					8
 
 static int prox_value[NB_PROX_SENSORS];
