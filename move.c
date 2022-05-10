@@ -53,6 +53,9 @@ static uint8_t currentModeInMove = STOP;
 //static bool rotationMappingIsOn = false;
 //static int rotationMappingValue = 0;
 static bool currentlySpinning = false;
+static bool blockMovingRessources = false;
+static bool currentlyMoving = false;
+static int32_t actionDuration = 0;
 // static int distanceToTravel = 0;
 
 //static systime_t stored_time = 0;
@@ -128,6 +131,17 @@ static THD_FUNCTION(StepTracker, arg) {
     		}
         }
 
+        // moving straight
+        if(currentlyMoving) {
+    		if(chVTGetSystemTime() >= actionDuration) {
+    			actionDuration = 0;
+    			motor_stop();
+    			blockMovingRessources = false;
+    			currentlyMoving = false;
+    			update_currentModeInMove(STOP);
+    		}
+        }
+
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
     }
@@ -149,6 +163,34 @@ void spin_angle_degree(uint16_t angle_in_degree) {
 
 		left_motor_set_speed(150);
 		right_motor_set_speed(-150);
+
+	}
+}
+
+void move_straight(int speed, int distance_in_mm) {
+
+	speed = motor_speed_protection(speed);
+
+	// volatile int duration = ((distance_in_mm*SEC2MSEC)/((speed/NSTEP_ONE_TURN)*WHEEL_PERIMETER)); // SEC2MSEC convert sec. -> msec.
+
+	// volatile systime_t start_time = chVTGetSystemTime();
+
+	// do {
+	// 	right_motor_set_speed(speed);
+	// 	left_motor_set_speed(speed);
+	// } while (chVTGetSystemTime() < (start_time + MS2ST(duration)));
+
+	// motor_stop();
+	// update_currentModeInMove(STOP);
+
+	if(!blockMovingRessources) {
+		actionDuration = ((distance_in_mm*SEC2MSEC)/((speed/NSTEP_ONE_TURN)*WHEEL_PERIMETER))+chVTGetSystemTime(); // SEC2MSEC convert sec. -> msec.
+
+		blockMovingRessources = true;
+		currentlyMoving = true;
+
+		left_motor_set_speed(speed);
+		right_motor_set_speed(speed);
 
 	}
 }
@@ -216,22 +258,6 @@ void rotate_left_in_degrees(int speed, float degrees) {
 	motor_stop();
 }
 
-void move_straight(int speed, int distance_in_mm) {
-
-	speed = motor_speed_protection(speed);
-
-	volatile int duration = ((distance_in_mm*SEC2MSEC)/((speed/NSTEP_ONE_TURN)*WHEEL_PERIMETER)); // SEC2MSEC convert sec. -> msec.
-
-	volatile systime_t start_time = chVTGetSystemTime();
-
-	do {
-		right_motor_set_speed(speed);
-		left_motor_set_speed(speed);
-	} while (chVTGetSystemTime() < (start_time + MS2ST(duration)));
-
-	motor_stop();
-	update_currentModeInMove(STOP);
-}
 
 int motor_speed_protection(int speed) {
 	if (speed > MAX_MOTOR_SPEED) {
