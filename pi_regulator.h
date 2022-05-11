@@ -11,7 +11,6 @@ typedef enum {
 bool get_regulationCompleted(void);
 
 void set_currentRegulatorMode(regulation_mode mode);
-void set_enablePiRegulator(bool status);// to be removed
 
 //start the PI regulator thread
 void pi_regulator_start(void);

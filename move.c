@@ -79,7 +79,7 @@ static THD_FUNCTION(StepTracker, arg) {
         	enableCallsOfFunctionThatUseStepTracker = true;
         	rotationMappingValue = rotationMappingValue + left_motor_get_pos();
         }
-        chprintf((BaseSequentialStream *)&SD3, "v=%d", rotationMappingValue);
+//        chprintf((BaseSequentialStream *)&SD3, "v=%d", rotationMappingValue);
 
         // stepTracker for spinning
         if(currentlySpinning) {
@@ -135,7 +135,7 @@ void stopMove(void) {
 	left_motor_set_speed(0);
 	right_motor_set_speed(0);
 	enableCallsOfFunctionThatUseStepTracker = true;
-	set_enablePiRegulator(false);
+	set_currentRegulatorMode(NOTHING);
 }
 
 void update_currentModeOfMove(move_mode mode) {
