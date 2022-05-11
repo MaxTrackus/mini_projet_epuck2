@@ -11,15 +11,19 @@
 #include <proxi.h>
 
 #define MAX_SPIN_ANGLE		360
+#define MAX_MOTOR_SPEED					1100 // [steps/s]
+
 
 static int32_t goalLeftMotorPos = 0;
 static bool enableCallsOfFunctionThatUseStepTracker = true;
 static move_mode currentModeOfMove = STOP_MOVE;
 
-static bool rotationMappingIsOn = false;
-static int rotationMappingValue = 0;
+//static bool rotationMappingIsOn = false;
+//static int rotationMappingValue = 0;
 
 static bool currentlySpinning = false;
+
+static uint16_t movingSpeed = 0;
 
 static THD_WORKING_AREA(waStepTracker, 256);
 static THD_FUNCTION(StepTracker, arg) {
@@ -38,18 +42,15 @@ static THD_FUNCTION(StepTracker, arg) {
 				break;
 
 			case SPIN_RIGHT:
-				left_motor_set_speed(100);
-				right_motor_set_speed(-100);
+				rotate_right(movingSpeed);
 				break;
 
 			case SPIN_LEFT:
-				left_motor_set_speed(-100);
-				right_motor_set_speed(100);
+				rotate_left(movingSpeed);
 				break;
 
 			case MOVE_STRAIGHT:
-				left_motor_set_speed(100);
-				right_motor_set_speed(100);
+				move_straight(movingSpeed);
 				break;
 
 			case SPIN_ALIGNEMENT:
@@ -96,6 +97,24 @@ static THD_FUNCTION(StepTracker, arg) {
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
     }
+}
+
+void set_movingSpeed(int speed) {
+	movingSpeed = motor_speed_protection(speed);
+}
+
+void move_straight(int speed) {
+	left_motor_set_speed(speed);
+	right_motor_set_speed(speed);
+}
+
+int motor_speed_protection(int speed) {
+	if (speed > MAX_MOTOR_SPEED) {
+		speed = MAX_MOTOR_SPEED;
+	} else if (speed < -MAX_MOTOR_SPEED) {
+		speed = -MAX_MOTOR_SPEED;
+	}
+	return speed;
 }
 
 // used at the end of the demo for rotation to the exit only
