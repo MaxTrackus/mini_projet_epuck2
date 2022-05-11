@@ -18,8 +18,8 @@ static int32_t goalLeftMotorPos = 0;
 static bool enableCallsOfFunctionThatUseStepTracker = true;
 static move_mode currentModeOfMove = STOP_MOVE;
 
-//static bool rotationMappingIsOn = false;
-//static int rotationMappingValue = 0;
+static bool rotationMappingIsOn = false;
+static int rotationMappingValue = 0;
 
 static bool currentlySpinning = false;
 

@@ -27,30 +27,14 @@
 #define MOTOR_STEP_TO_DEGREES			360 //find other name maybe
 
 
-
-
-typedef enum {
-	IDLE,
-	ANALYSE,
-	ALIGN,
-	AVOID,
-	PURSUIT,
-	MEASURE,
-	PUSH,
-	FOLLOW,
-	EXIT,
-	RECENTER
-} program_mode;
-
-static volatile uint8_t currentProgramMode = MEASURE;
+static volatile task_mode currentMode = IDLE;
 static volatile systime_t currentTime = 0;
 static volatile uint32_t actionTime = 0;
 static volatile uint16_t distanceToTravel = 0;
 static volatile bool wallFound = false;
 
 
-
-//static uint8_t lostLineCounter = 0;
+static uint8_t lostLineCounter = 0;
 
 static THD_WORKING_AREA(waCentralUnit, 256);
 static THD_FUNCTION(CentralUnit, arg) {
@@ -102,7 +86,7 @@ static THD_FUNCTION(CentralUnit, arg) {
         			distanceToTravel = VL53L0X_get_dist_mm(); //This saves the value to the object here
         			set_movingSpeed(SLOW_SPEED);
         			currentTime = chVTGetSystemTime(); 
-        			update_currentModeInMove(SPIN_RIGHT);
+        			update_currentModeOfMove(SPIN_RIGHT);
         		}
         		
         		uint16_t tof_value = VL53L0X_get_dist_mm();
@@ -111,14 +95,14 @@ static THD_FUNCTION(CentralUnit, arg) {
         			actionTime = chVTGetSystemTime() - currentTime;
         			distanceToTravel = tof_value - distanceToTravel - WALL_CLEARANCE - OBJECT_DIAMETER;
         			currentTime = chVTGetSystemTime();
-        			update_currentModeInMove(SPIN_LEFT);
+        			update_currentModeOfMove(SPIN_LEFT);
         			wallFound = true;
         		}
 
         		//gets back to original position
         		if ((chVTGetSystemTime() > (currentTime + actionTime)) && (wallFound == true)) {
-        			update_currentModeInMove(STOP);
-        			currentProgramMode = PUSH;
+        			update_currentModeOfMove(STOP);
+        			currentMode = PUSH;
         			wallFound = false;
         			currentTime = 0;
         			actionTime = 0;
@@ -130,12 +114,12 @@ static THD_FUNCTION(CentralUnit, arg) {
         			actionTime = ((distanceToTravel*SEC2MSEC)/(((DEFAULT_SPEED)/NSTEP_ONE_TURN)*WHEEL_PERIMETER)); // 1000 convert sec. -> msec.
         			currentTime = chVTGetSystemTime();
         			set_movingSpeed(DEFAULT_SPEED);
-        			update_currentModeInMove(MOVE_STRAIGHT);
+        			update_currentModeOfMove(MOVE_STRAIGHT);
         		}
 
         		if (time >= (currentTime + MS2ST(actionTime))) {
-        			update_currentModeInMove(STOP);
-        			currentProgramMode = FOLLOW;
+        			update_currentModeOfMove(STOP);
+        			currentMode = FOLLOW;
         			distanceToTravel = 0;
         			actionTime = 0;
         			currentTime = 0;
@@ -147,12 +131,12 @@ static THD_FUNCTION(CentralUnit, arg) {
         			actionTime = (QUARTER_TURN * DEFAULT_SPEED * SEC2MSEC)/(MOTOR_STEP_TO_DEGREES);
         			set_movingSpeed(DEFAULT_SPEED);
         			currentTime = chVTGetSystemTime();
-        			update_currentModeInMove(SPIN_LEFT); //depends on the flag given by MAX
+        			update_currentModeOfMove(SPIN_LEFT); //depends on the flag given by MAX
         		}
 
         		if (chVTGetSystemTime() >= (currentTime + MS2ST(actionTime))) {
-        			update_currentModeInMove(STOP);
-        			currentProgramMode = IDLE;
+        			update_currentModeOfMove(STOP);
+        			currentMode = IDLE;
         			actionTime = 0;
         			currentTime = 0;
         		}
@@ -163,7 +147,7 @@ static THD_FUNCTION(CentralUnit, arg) {
         	case RECENTER:
         		break;
         	default:
-        		currentProgramMode = IDLE;
+        		currentMode = IDLE;
         		break;
         }
 
@@ -190,74 +174,6 @@ static THD_FUNCTION(CentralUnit, arg) {
 
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
-
-// 		//analyseMode
-// 		if(currentMode == ANALYSE) {
-// 			set_body_led(1);
-// 		}
-// 		else {
-// 			set_body_led(0);
-// 		}
-
-// //		//alignementMode
-// //		if(currentMode == ALIGN) {
-// //			set_front_led(1);
-// //		}
-// //		else {
-// //			set_front_led(0);
-// //		}
-
-// 		//pursuitMode
-// 		if(currentMode == PURSUIT) {
-// 			set_led(LED3, 1);
-// 			if(get_staticFoundLine() == false) {
-// 				++lostLineCounter;
-// 			} else {
-// 				lostLineCounter = 0;
-// 			}
-// 			if(lostLineCounter == 100) {
-// 				currentMode = STOP;
-// 			}
-// 			if(get_lineWidth() > (uint16_t)(400)) {
-// 				set_led(LED5, 1);
-// 				currentMode = STOP;
-// 			} else {
-// 				set_led(LED5, 0);
-// 			}
-// 		}
-// 		else {
-// 			set_led(LED3, 0);
-// 			set_led(LED5, 0);
-// 		}
-
-// 		//from idle to analyseMode
-// 		if((get_selector() == 1) && !(currentMode == ALIGN) && !(currentMode == PURSUIT) && !(currentMode == WAIT_MOVING)) {
-// 			currentMode = ANALYSE;
-// 		}
-// 		//from analyseMode to alignementMode
-// 		if((currentMode == ANALYSE) && get_staticFoundLine()) {
-// 			currentMode = ALIGN;
-// 		}
-// 		//from alignementMode to analyseMode
-// 		if((currentMode == ALIGN) && (!(get_staticFoundLine()))) {
-// 			currentMode = ANALYSE;
-// 		}
-// 		//from alignementMode to pursuit
-// 		if((currentMode == ALIGN) && (get_regulationCompleted())) {
-// 			currentMode = PURSUIT;
-// 		}
-// 		//from idle to avoid
-// 		if((get_selector() == 8)) {
-// 			currentMode = AVOID;
-// 		}
-// 		//stop and idle
-// 		if((get_selector() == 15)) {
-// 			currentMode = STOP;
-// 		}
-
-// 		update_currentModeInMove(currentMode);
-
-        
     }
 }
 
@@ -265,34 +181,34 @@ static THD_FUNCTION(CentralUnit, arg) {
 void set_mode_with_selector(void) {
 	switch (get_selector()) {
 		case 0:
-			currentProgramMode = IDLE;
+			currentMode = IDLE;
 			break;
 		case 1:
-			currentProgramMode = ANALYSE;
+			currentMode = ANALYSE;
 			break;
 		case 2:
-			currentProgramMode = ALIGN;
+			currentMode = ALIGN;
 			break;
 		case 3:
-			currentProgramMode = PURSUIT;
+			currentMode = PURSUIT;
 			break;
 		case 4:
-			currentProgramMode = MEASURE;
+			currentMode = MEASURE;
 			break;
 		case 5:
-			currentProgramMode = PUSH;
+			currentMode = PUSH;
 			break;
 		case 6:
-			currentProgramMode = FOLLOW;
+			currentMode = FOLLOW;
 			break;
 		case 7:
-			currentProgramMode = EXIT;
+			currentMode = EXIT;
 			break;
 		case 8:
-			currentProgramMode = RECENTER;
+			currentMode = RECENTER;
 			break;
 		default:
-			currentProgramMode = IDLE;
+			currentMode = IDLE;
 			break;
 	}
 }

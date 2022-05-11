@@ -22,6 +22,10 @@ void rotate_right(int speed);
 // void rotate_right_in_degrees(int speed, float degrees);
 void motor_stop(void);
 void avoid_obstacles(int speed, int prox_detection_threshold);
+void move_straight(int speed);
+int motor_speed_protection(int speed);
+void set_movingSpeed(int speed);
+void update_currentModeOfMove(move_mode mode);
 
 #endif /* MOVE_H */
 //uint16_t angle_in_degree
