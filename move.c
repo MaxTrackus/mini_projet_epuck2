@@ -38,24 +38,25 @@ static THD_FUNCTION(StepTracker, arg) {
 				break;
 
 			case SPIN_RIGHT:
-				stopMove();
-				left_motor_set_speed(150);
-				right_motor_set_speed(-150);
+				left_motor_set_speed(100);
+				right_motor_set_speed(-100);
 				break;
 
 			case SPIN_LEFT:
-				stopMove();
-				left_motor_set_speed(-150);
-				right_motor_set_speed(150);
+				left_motor_set_speed(-100);
+				right_motor_set_speed(100);
+				break;
+
+			case MOVE_STRAIGHT:
+				left_motor_set_speed(100);
+				right_motor_set_speed(100);
 				break;
 
 			case SPIN_ALIGNEMENT:
-				stopMove();
 				set_currentRegulatorMode(ALIGN_ROTATION);
 				break;
 
 			case MOVE_STRAIGHT_CORRECT_ALIGNEMENT:
-				stopMove();
 				set_currentRegulatorMode(PURSUIT_CORRECTION);
 				break;
 
@@ -79,7 +80,7 @@ static THD_FUNCTION(StepTracker, arg) {
         	enableCallsOfFunctionThatUseStepTracker = true;
         	rotationMappingValue = rotationMappingValue + left_motor_get_pos();
         }
-//        chprintf((BaseSequentialStream *)&SD3, "v=%d", rotationMappingValue);
+        chprintf((BaseSequentialStream *)&SD3, "v=%d", rotationMappingValue);
 
         // stepTracker for spinning
         if(currentlySpinning) {
