@@ -4,12 +4,10 @@
 //List of the different mode, i.e the different tasks that the robot must perform for our application
 typedef enum {
 	STOP,
-	WAIT_MOVING,
-	ANALYSE,
-	ALIGN,
-	AVOID,
-	PURSUIT,
-} task_mode;
+	SPIN_RIGHT,
+	SPIN_LEFT,
+	MOVE_STRAIGHT,
+} moving_mode;
 
 void spin_angle_degree(uint16_t angle_in_degree);
 void move_start(void);

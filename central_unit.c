@@ -12,7 +12,20 @@
 #include <move.h>
 #include <pi_regulator.h>
 
-static uint8_t currentMode = STOP;
+typedef enum {
+	IDLE,
+	ANALYSE,
+	ALIGN,
+	AVOID,
+	PURSUIT,
+	MEASURE,
+	PUSH,
+	FOLLOW,
+	EXIT,
+	RECENTER
+} program_mode;
+
+static uint8_t currentProgramMode = IDLE;
 static uint8_t lostLineCounter = 0;
 
 static THD_WORKING_AREA(waCentralUnit, 256);
@@ -26,74 +39,95 @@ static THD_FUNCTION(CentralUnit, arg) {
     while(1){
         time = chVTGetSystemTime();
 
-		//analyseMode
-		if(currentMode == ANALYSE) {
-			set_body_led(1);
-		}
-		else {
-			set_body_led(0);
-		}
+        switch (currentProgramMode) {
+        	case IDLE:
+        		break;
+        	case MEASURE:
+        		break;
+        	case PUSH:
+        		break;
+        	case FOLLOW:
+        		break;
+        	case EXIT:
+        		break;
+        	case RECENTER:
+        		break;
+        	default:
+        		currentProgramMode = IDLE;
+        		break;
+        }
 
-//		//alignementMode
-//		if(currentMode == ALIGN) {
-//			set_front_led(1);
-//		}
-//		else {
-//			set_front_led(0);
-//		}
 
-		//pursuitMode
-		if(currentMode == PURSUIT) {
-			set_led(LED3, 1);
-			if(get_staticFoundLine() == false) {
-				++lostLineCounter;
-			} else {
-				lostLineCounter = 0;
-			}
-			if(lostLineCounter == 100) {
-				currentMode = STOP;
-			}
-			if(get_lineWidth() > (uint16_t)(400)) {
-				set_led(LED5, 1);
-				currentMode = STOP;
-			} else {
-				set_led(LED5, 0);
-			}
-		}
-		else {
-			set_led(LED3, 0);
-			set_led(LED5, 0);
-		}
-
-		//from idle to analyseMode
-		if((get_selector() == 1) && !(currentMode == ALIGN) && !(currentMode == PURSUIT) && !(currentMode == WAIT_MOVING)) {
-			currentMode = ANALYSE;
-		}
-		//from analyseMode to alignementMode
-		if((currentMode == ANALYSE) && get_staticFoundLine()) {
-			currentMode = ALIGN;
-		}
-		//from alignementMode to analyseMode
-		if((currentMode == ALIGN) && (!(get_staticFoundLine()))) {
-			currentMode = ANALYSE;
-		}
-		//from alignementMode to pursuit
-		if((currentMode == ALIGN) && (get_regulationCompleted())) {
-			currentMode = PURSUIT;
-		}
-		//from idle to avoid
-		if((get_selector() == 8)) {
-			currentMode = AVOID;
-		}
-		//stop and idle
-		if((get_selector() == 15)) {
-			currentMode = STOP;
-		}
-
-		update_currentModeInMove(currentMode);
-
-        //100Hz
+		//100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
+
+// 		//analyseMode
+// 		if(currentMode == ANALYSE) {
+// 			set_body_led(1);
+// 		}
+// 		else {
+// 			set_body_led(0);
+// 		}
+
+// //		//alignementMode
+// //		if(currentMode == ALIGN) {
+// //			set_front_led(1);
+// //		}
+// //		else {
+// //			set_front_led(0);
+// //		}
+
+// 		//pursuitMode
+// 		if(currentMode == PURSUIT) {
+// 			set_led(LED3, 1);
+// 			if(get_staticFoundLine() == false) {
+// 				++lostLineCounter;
+// 			} else {
+// 				lostLineCounter = 0;
+// 			}
+// 			if(lostLineCounter == 100) {
+// 				currentMode = STOP;
+// 			}
+// 			if(get_lineWidth() > (uint16_t)(400)) {
+// 				set_led(LED5, 1);
+// 				currentMode = STOP;
+// 			} else {
+// 				set_led(LED5, 0);
+// 			}
+// 		}
+// 		else {
+// 			set_led(LED3, 0);
+// 			set_led(LED5, 0);
+// 		}
+
+// 		//from idle to analyseMode
+// 		if((get_selector() == 1) && !(currentMode == ALIGN) && !(currentMode == PURSUIT) && !(currentMode == WAIT_MOVING)) {
+// 			currentMode = ANALYSE;
+// 		}
+// 		//from analyseMode to alignementMode
+// 		if((currentMode == ANALYSE) && get_staticFoundLine()) {
+// 			currentMode = ALIGN;
+// 		}
+// 		//from alignementMode to analyseMode
+// 		if((currentMode == ALIGN) && (!(get_staticFoundLine()))) {
+// 			currentMode = ANALYSE;
+// 		}
+// 		//from alignementMode to pursuit
+// 		if((currentMode == ALIGN) && (get_regulationCompleted())) {
+// 			currentMode = PURSUIT;
+// 		}
+// 		//from idle to avoid
+// 		if((get_selector() == 8)) {
+// 			currentMode = AVOID;
+// 		}
+// 		//stop and idle
+// 		if((get_selector() == 15)) {
+// 			currentMode = STOP;
+// 		}
+
+// 		update_currentModeInMove(currentMode);
+
+        
     }
 }
 
