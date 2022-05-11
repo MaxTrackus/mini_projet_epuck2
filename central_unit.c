@@ -26,25 +26,29 @@ static THD_FUNCTION(CentralUnit, arg) {
     while(1){
         time = chVTGetSystemTime();
 
-		//analyseMode
-		if(currentMode == ANALYSE) {
-			set_body_led(1);
-		}
-		else {
-			set_body_led(0);
-		}
+        currentMode == ANALYSE ? set_body_led(1) : set_body_led(0);
+        currentMode == ALIGN ? set_led(LED1, 1) : set_led(LED1, 0);
+        currentMode == PURSUIT ? set_led(LED1, 1) : set_led(LED1, 0);
+
+//		//analyseMode
+//		if(currentMode == ANALYSE) {
+//			set_body_led(1);
+//		}
+//		else {
+//			set_body_led(0);
+//		}
 
 //		//alignementMode
 //		if(currentMode == ALIGN) {
-//			set_front_led(1);
+//			set_led(LED1, 1);
 //		}
 //		else {
-//			set_front_led(0);
+//			set_led(LED1, 0);
 //		}
 
 		//pursuitMode
 		if(currentMode == PURSUIT) {
-			set_led(LED3, 1);
+//			set_led(LED3, 1);
 			if(get_staticFoundLine() == false) {
 				++lostLineCounter;
 			} else {
@@ -54,10 +58,10 @@ static THD_FUNCTION(CentralUnit, arg) {
 				currentMode = STOP;
 			}
 			if(get_lineWidth() > (uint16_t)(400)) {
-				set_led(LED5, 1);
+//				set_led(LED5, 1);
 				currentMode = STOP;
 			} else {
-				set_led(LED5, 0);
+//				set_led(LED5, 0);
 			}
 		}
 		else {
