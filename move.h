@@ -4,10 +4,8 @@
 //List of the different mode, i.e the different tasks that the robot must perform for our application
 typedef enum {
 	STOP,
-	WAIT_MOVING,
 	ANALYSE,
 	ALIGN,
-	AVOID,
 	PURSUIT,
 } task_mode;
 

@@ -31,20 +31,30 @@ static THD_FUNCTION(CentralUnit, arg) {
         currentMode == ALIGN ? set_led(LED1, 1) : set_led(LED1, 0);
         currentMode == PURSUIT ? set_led(LED3, 1) : set_led(LED3, 0);
 
-		//pursuitMode
-		if(currentMode == PURSUIT) {
-			if(get_staticFoundLine() == false) {
-				++lostLineCounter;
-			} else {
-				lostLineCounter = 0;
-			}
-			if(lostLineCounter == 100) {
-				currentMode = STOP;
-			}
-			if(get_lineWidth() > (uint16_t)(400)) {
-				currentMode = STOP;
-			}
-		}
+        switch(currentMode) {
+        	case STOP:
+        		break;
+
+        	case ANALYSE:
+        		break;
+
+        	case ALIGN:
+        		break;
+
+        	case PURSUIT:
+    			if(get_staticFoundLine() == false) {
+    				++lostLineCounter;
+    			} else {
+    				lostLineCounter = 0;
+    			}
+    			if(lostLineCounter == 100) {
+    				currentMode = STOP;
+    			}
+    			if(get_lineWidth() > (uint16_t)(400)) {
+    				currentMode = STOP;
+    			}
+        		break;
+        }
 
 		//from idle to analyseMode
 		if((get_selector() == 1) && !(currentMode == ALIGN) && !(currentMode == PURSUIT)) {
@@ -61,10 +71,6 @@ static THD_FUNCTION(CentralUnit, arg) {
 		//from alignementMode to pursuit
 		if((currentMode == ALIGN) && (get_regulationCompleted())) {
 			currentMode = PURSUIT;
-		}
-		//from idle to avoid
-		if((get_selector() == 8)) {
-			currentMode = AVOID;
 		}
 		//stop and idle
 		if((get_selector() == 15)) {

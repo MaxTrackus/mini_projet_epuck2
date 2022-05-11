@@ -37,10 +37,6 @@ static THD_FUNCTION(StepTracker, arg) {
              case STOP:
             	 stopMove();
             	 break;
-             case WAIT_MOVING:
-				 // do nothing
-            	 // we wait for the stepTracker to stop the motors
-				 break;
              case ANALYSE:
             	 stopMove();
             	 spin_angle_degree(360);
@@ -49,10 +45,6 @@ static THD_FUNCTION(StepTracker, arg) {
             	 stopMove();
             	 set_currentRegulatorMode(ALIGN_ROTATION);
             	 break;
-        	 case AVOID:
-	        	 stopMove();
-	        	 avoid_obstacles(200, 100);
-	        	 break;
         	 case PURSUIT:
         		 stopMove();
         		 // do nothing yet
@@ -77,7 +69,6 @@ static THD_FUNCTION(StepTracker, arg) {
         	enableCallsOfFunctionThatUseStepTracker = true;
         	rotationMappingValue = rotationMappingValue + left_motor_get_pos();
         }
-
 //        chprintf((BaseSequentialStream *)&SD3, "v=%d", rotationMappingValue);
 
         // stepTracker for spinning
