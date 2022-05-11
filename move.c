@@ -14,7 +14,7 @@
 
 static int32_t goalLeftMotorPos = 0;
 static bool enableCallsOfFunctionThatUseStepTracker = true;
-static uint8_t currentModeInMove = STOP;
+static move_mode currentModeOfMove = STOP_MOVE;
 
 static bool rotationMappingIsOn = false;
 static int rotationMappingValue = 0;
@@ -32,39 +32,43 @@ static THD_FUNCTION(StepTracker, arg) {
     while(1){
         time = chVTGetSystemTime();
 
-        switch (currentModeInMove)
-        {
-             case STOP:
-            	 stopMove();
-            	 break;
-             case ANALYSE:
-            	 stopMove();
-            	 spin_angle_degree(360);
-            	 break;
-             case ALIGN:
-            	 stopMove();
-            	 set_currentRegulatorMode(ALIGN_ROTATION);
-            	 break;
-        	 case PURSUIT:
-        		 stopMove();
-        		 // do nothing yet
-        		 set_currentRegulatorMode(PURSUIT_CORRECTION);
-	        	 break;
-             default:
-            	 stopMove();
+        switch (currentModeOfMove) {
+			case STOP_MOVE:
+				stopMove();
+				break;
+
+			case SPIN_RIGHT:
+				stopMove();
+				left_motor_set_speed(150);
+				right_motor_set_speed(-150);
+				break;
+
+			case SPIN_ALIGNEMENT:
+				stopMove();
+				set_currentRegulatorMode(ALIGN_ROTATION);
+				break;
+
+			case MOVE_STRAIGHT_CORRECT_ALIGNEMENT:
+				stopMove();
+				set_currentRegulatorMode(PURSUIT_CORRECTION);
+				break;
+
+			default:
+			 stopMove();
         }
 
-        if((!(currentModeInMove == ALIGN)) && (!(currentModeInMove == PURSUIT))) {
+        //disable PI regulator when the mode doesn't need it
+        if((!(currentModeOfMove == SPIN_ALIGNEMENT)) && (!(currentModeOfMove == MOVE_STRAIGHT_CORRECT_ALIGNEMENT))) {
         	set_currentRegulatorMode(NOTHING);
         }
 
         // rotationMapping
-        if(((currentModeInMove == ANALYSE) || (currentModeInMove == ALIGN)) && !rotationMappingIsOn) {
+        if(((currentModeOfMove == SPIN_RIGHT) || (currentModeOfMove == SPIN_ALIGNEMENT)) && !rotationMappingIsOn) { //must add for the spin left!!!!!!!!!!!!!
         	rotationMappingIsOn = true;
         	enableCallsOfFunctionThatUseStepTracker = false;
         	left_motor_set_pos(0);
         }
-        if(!(currentModeInMove == ANALYSE) && !(currentModeInMove == ALIGN) && rotationMappingIsOn) {
+        if(!(currentModeOfMove == SPIN_RIGHT) && !(currentModeOfMove == SPIN_ALIGNEMENT) && rotationMappingIsOn) { //must add for the spin left!!!!!!!!!!!!!
         	rotationMappingIsOn = false;
         	enableCallsOfFunctionThatUseStepTracker = true;
         	rotationMappingValue = rotationMappingValue + left_motor_get_pos();
@@ -87,6 +91,7 @@ static THD_FUNCTION(StepTracker, arg) {
     }
 }
 
+// used at the end of the demo for rotation to the exit only
 void spin_angle_degree(uint16_t angle_in_degree) {
 	uint16_t angle = angle_in_degree*1.95;
 	if(angle_in_degree > MAX_SPIN_ANGLE) {
@@ -127,8 +132,8 @@ void stopMove(void) {
 	set_enablePiRegulator(false);
 }
 
-void update_currentModeInMove(uint8_t mode) {
-	currentModeInMove = mode;
+void update_currentModeOfMove(move_mode mode) {
+	currentModeOfMove = mode;
 }
 
 // BEGIN -- Added by j.Suchet on 04.05.22

@@ -33,15 +33,19 @@ static THD_FUNCTION(CentralUnit, arg) {
 
         switch(currentMode) {
         	case STOP:
+        		update_currentModeOfMove(STOP_MOVE);
         		break;
 
         	case ANALYSE:
+        		update_currentModeOfMove(SPIN_RIGHT);
         		break;
 
         	case ALIGN:
+        		update_currentModeOfMove(SPIN_ALIGNEMENT);
         		break;
 
         	case PURSUIT:
+        		update_currentModeOfMove(MOVE_STRAIGHT_CORRECT_ALIGNEMENT);
     			if(get_staticFoundLine() == false) {
     				++lostLineCounter;
     			} else {
@@ -76,8 +80,6 @@ static THD_FUNCTION(CentralUnit, arg) {
 		if((get_selector() == 15)) {
 			currentMode = STOP;
 		}
-
-		update_currentModeInMove(currentMode);
 
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
