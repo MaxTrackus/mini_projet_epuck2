@@ -17,11 +17,14 @@
 #define SLOW_SPEED						50 	// [steps/s]
 #define	OBJECT_DIAMETER					30 	// [mm]	
 #define ERROR_MARGIN					2 	// [mm]
-#define WALL_CLEARANCE					20 	// [mm]
-#define SEC2MSEC						1000
+#define WALL_CLEARANCE					100 	// [mm]
+#define SEC2MSEC						38  //1000
 #define MAX_MOTOR_SPEED					1100 // [steps/s]
 #define NSTEP_ONE_TURN      			100 // number of step for 1 turn of the motor
 #define WHEEL_PERIMETER     			130 // [mm]
+
+#define QUARTER_TURN					90
+#define MOTOR_STEP_TO_DEGREES			360 //find other name maybe
 
 
 
@@ -44,6 +47,7 @@ static volatile systime_t currentTime = 0;
 static volatile uint32_t actionTime = 0;
 static volatile uint16_t distanceToTravel = 0;
 static volatile bool wallFound = false;
+
 
 
 //static uint8_t lostLineCounter = 0;
@@ -90,6 +94,7 @@ static THD_FUNCTION(CentralUnit, arg) {
         			wallFound = false;
         			currentTime = 0;
         			actionTime = 0;
+        			VL53L0X_stop();
         		}
         		break;
         	case PUSH:
@@ -102,7 +107,7 @@ static THD_FUNCTION(CentralUnit, arg) {
 
         		if (time >= (currentTime + MS2ST(actionTime))) {
         			update_currentModeInMove(STOP);
-        			currentProgramMode = IDLE;
+        			currentProgramMode = FOLLOW;
         			distanceToTravel = 0;
         			actionTime = 0;
         			currentTime = 0;
@@ -110,6 +115,20 @@ static THD_FUNCTION(CentralUnit, arg) {
         		}
         		break;
         	case FOLLOW:
+        		if (actionTime == 0) {
+        			actionTime = (QUARTER_TURN * DEFAULT_SPEED * SEC2MSEC)/(MOTOR_STEP_TO_DEGREES);
+        			set_movingSpeed(DEFAULT_SPEED);
+        			currentTime = chVTGetSystemTime();
+        			update_currentModeInMove(SPIN_LEFT); //depends on the flag given by MAX
+        		}
+
+        		if (chVTGetSystemTime() >= (currentTime + MS2ST(actionTime))) {
+        			update_currentModeInMove(STOP);
+        			currentProgramMode = IDLE;
+        			actionTime = 0;
+        			currentTime = 0;
+        		}
+
         		break;
         	case EXIT:
         		break;
