@@ -1,19 +1,11 @@
 #ifndef MOVE_H
 #define MOVE_H
 
-////List of the different mode, i.e the different tasks that the robot must perform for our application
-//typedef enum {
-//	STOP,
-//	ANALYSE,
-//	ALIGN,
-//	PURSUIT,
-//} task_mode;
-
 //List of the different mode in the move.c file, i.e the different configurations of the motors
 typedef enum {
 	STOP_MOVE,
 	SPIN_RIGHT, //for the analyse mode of central unit
-//	SPIN_LEFT, //to be added!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	SPIN_LEFT, //to be added!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	MOVE_STRAIGHT,
 	SPIN_ALIGNEMENT, //for the align mode of central unit
 	MOVE_STRAIGHT_CORRECT_ALIGNEMENT, //for the pursuit mode of central unit

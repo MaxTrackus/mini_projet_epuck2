@@ -43,6 +43,12 @@ static THD_FUNCTION(StepTracker, arg) {
 				right_motor_set_speed(-150);
 				break;
 
+			case SPIN_LEFT:
+				stopMove();
+				left_motor_set_speed(-150);
+				right_motor_set_speed(150);
+				break;
+
 			case SPIN_ALIGNEMENT:
 				stopMove();
 				set_currentRegulatorMode(ALIGN_ROTATION);
@@ -63,17 +69,17 @@ static THD_FUNCTION(StepTracker, arg) {
         }
 
         // rotationMapping
-        if(((currentModeOfMove == SPIN_RIGHT) || (currentModeOfMove == SPIN_ALIGNEMENT)) && !rotationMappingIsOn) { //must add for the spin left!!!!!!!!!!!!!
+        if(((currentModeOfMove == SPIN_RIGHT) || (currentModeOfMove == SPIN_LEFT) || (currentModeOfMove == SPIN_ALIGNEMENT)) && !rotationMappingIsOn) { //must add for the spin left!!!!!!!!!!!!!
         	rotationMappingIsOn = true;
         	enableCallsOfFunctionThatUseStepTracker = false;
         	left_motor_set_pos(0);
         }
-        if(!(currentModeOfMove == SPIN_RIGHT) && !(currentModeOfMove == SPIN_ALIGNEMENT) && rotationMappingIsOn) { //must add for the spin left!!!!!!!!!!!!!
+        if(!(currentModeOfMove == SPIN_RIGHT) && !(currentModeOfMove == SPIN_LEFT) && !(currentModeOfMove == SPIN_ALIGNEMENT) && rotationMappingIsOn) { //must add for the spin left!!!!!!!!!!!!!
         	rotationMappingIsOn = false;
         	enableCallsOfFunctionThatUseStepTracker = true;
         	rotationMappingValue = rotationMappingValue + left_motor_get_pos();
         }
-//        chprintf((BaseSequentialStream *)&SD3, "v=%d", rotationMappingValue);
+        chprintf((BaseSequentialStream *)&SD3, "v=%d", rotationMappingValue);
 
         // stepTracker for spinning
         if(currentlySpinning) {
