@@ -145,7 +145,7 @@ static THD_FUNCTION(CentralUnit, arg) {
 	        		}
 	        	} else {
 	        		bool *prox_status_table = get_prox_activation_status(PROX_DETECTION_THRESHOLD);
-//	        		int *prox_values = get_prox_value();
+	        		int *prox_values = get_prox_value();
 
 	        		set_movingSpeed(DEFAULT_SPEED);
 	        		if (prox_status_table[PROX_FRONT_LEFT_49] == true) {
@@ -153,7 +153,7 @@ static THD_FUNCTION(CentralUnit, arg) {
 					} else if (prox_status_table[PROX_FRONT_RIGHT_49] == true) {
 						update_currentModeInMove(SPIN_LEFT);
 					}
-					else if (prox_status_table[exitProx] == false) {
+					else if (prox_values[exitProx] <= 10) {
 						update_currentModeInMove(STOP);
 						currentProgramMode = IDLE;
 					}
