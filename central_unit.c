@@ -50,6 +50,7 @@ static volatile systime_t currentTime = 0;
 static volatile uint32_t actionTime = 0;
 static volatile uint16_t distanceToTravel = 0;
 static volatile bool wallFound = false;
+static bool wallMeasured = false;
 static bool optimizedExitOnLeft = true; //Jeremy's version of Max's flag given after rotation mapping
 static uint8_t exitProx = PROX_RIGHT;
 
@@ -80,6 +81,7 @@ static THD_FUNCTION(CentralUnit, arg) {
         		break;
         	case MEASURE:
         		if (distanceToTravel == 0) {
+        			set_front_led(1);
         			distanceToTravel = VL53L0X_get_dist_mm(); //gets distance to object
         			left_motor_pos_target = 72;//1295;
         			reset_motor_pos();
@@ -87,20 +89,30 @@ static THD_FUNCTION(CentralUnit, arg) {
         			update_currentModeInMove(SPIN_RIGHT);
         		}
 
-        		volatile uint16_t tof = VL53L0X_get_dist_mm();
+        		//volatile uint16_t tof = VL53L0X_get_dist_mm();
 
         		if ((get_left_motor_pos() >= left_motor_pos_target) && (wallFound == false)) {
         			update_currentModeInMove(STOP);
-        			wait(800000);
+        			
+        			// for (int i=0; i<8000; i++) {};
+        			// wait(800000);
+        			chThdSleepMilliseconds(5000);
         			wallFound = true;
         			distanceToTravel = VL53L0X_get_dist_mm() - distanceToTravel - OBJECT_DIAMETER - WALL_CLEARANCE;
-        			right_motor_pos_target = 72;//1295;
+        			// right_motor_pos_target = 72;//1295;
+        			// reset_motor_pos();
+        			// set_movingSpeed(SLOW_SPEED);
+        			// update_currentModeInMove(SPIN_LEFT);
+        		} else if ((wallFound == true) && (wallMeasured == false)) {
+        			set_front_led(0);
         			reset_motor_pos();
-        			set_movingSpeed(SLOW_SPEED);
-        			update_currentModeInMove(SPIN_LEFT);
+        			right_motor_pos_target = 72;//1295;
+        			wallMeasured = true;
+					set_movingSpeed(SLOW_SPEED);
+					update_currentModeInMove(SPIN_LEFT);
         		}
 
-        		if ((get_right_motor_pos() >= right_motor_pos_target) && (wallFound == true)) {
+        		if ((get_right_motor_pos() >= right_motor_pos_target) && (wallMeasured == true)) {
         			update_currentModeInMove(STOP);
         			currentProgramMode = PUSH;
         		}
