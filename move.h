@@ -26,6 +26,8 @@ void move_straight(int speed);
 int motor_speed_protection(int speed);
 void set_movingSpeed(int speed);
 void update_currentModeOfMove(move_mode mode);
+void set_rotationMappingIsOn(bool status);
+int get_rotationMappingValue(void);
 
 #endif /* MOVE_H */
 //uint16_t angle_in_degree

@@ -70,18 +70,16 @@ static THD_FUNCTION(StepTracker, arg) {
         	set_currentRegulatorMode(NOTHING);
         }
 
-        // rotationMapping
-        if(((currentModeOfMove == SPIN_RIGHT) || (currentModeOfMove == SPIN_LEFT) || (currentModeOfMove == SPIN_ALIGNEMENT)) && !rotationMappingIsOn) { //must add for the spin left!!!!!!!!!!!!!
-        	rotationMappingIsOn = true;
-        	enableCallsOfFunctionThatUseStepTracker = false;
+        // rotationMapping during analyse and align modes
+        if(!rotationMappingIsOn) {
+        	enableCallsOfFunctionThatUseStepTracker = true;
         	left_motor_set_pos(0);
         }
-        if(!(currentModeOfMove == SPIN_RIGHT) && !(currentModeOfMove == SPIN_LEFT) && !(currentModeOfMove == SPIN_ALIGNEMENT) && rotationMappingIsOn) { //must add for the spin left!!!!!!!!!!!!!
-        	rotationMappingIsOn = false;
-        	enableCallsOfFunctionThatUseStepTracker = true;
-        	rotationMappingValue = rotationMappingValue + left_motor_get_pos();
+        if(rotationMappingIsOn) {
+        	enableCallsOfFunctionThatUseStepTracker = false;
+        	rotationMappingValue = left_motor_get_pos();
         }
-        chprintf((BaseSequentialStream *)&SD3, "v=%d", rotationMappingValue);
+//        chprintf((BaseSequentialStream *)&SD3, "v=%d", rotationMappingValue);
 
         // stepTracker for spinning
         if(currentlySpinning) {
@@ -97,6 +95,14 @@ static THD_FUNCTION(StepTracker, arg) {
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
     }
+}
+
+void set_rotationMappingIsOn(bool status) {
+	rotationMappingIsOn = status;
+}
+
+int get_rotationMappingValue(void) {
+	return rotationMappingValue;
 }
 
 void set_movingSpeed(int speed) {

@@ -32,6 +32,7 @@ static volatile systime_t currentTime = 0;
 static volatile uint32_t actionTime = 0;
 static volatile uint16_t distanceToTravel = 0;
 static volatile bool wallFound = false;
+static bool optimizedExitOnLeft = true;
 
 
 static uint8_t lostLineCounter = 0;
@@ -56,18 +57,22 @@ static THD_FUNCTION(CentralUnit, arg) {
         	case IDLE:
         		break;
         	case STOP:
+        		set_movingSpeed(DEFAULT_SPEED);
         		update_currentModeOfMove(STOP_MOVE);
         		break;
 
         	case ANALYSE:
+        		set_movingSpeed(DEFAULT_SPEED);
         		update_currentModeOfMove(SPIN_RIGHT);
         		break;
 
         	case ALIGN:
+        		set_movingSpeed(DEFAULT_SPEED);
         		update_currentModeOfMove(SPIN_ALIGNEMENT);
         		break;
 
         	case PURSUIT:
+        		set_movingSpeed(DEFAULT_SPEED);
         		update_currentModeOfMove(MOVE_STRAIGHT_CORRECT_ALIGNEMENT);
     			if(get_staticFoundLine() == false) {
     				++lostLineCounter;
@@ -151,6 +156,13 @@ static THD_FUNCTION(CentralUnit, arg) {
         		break;
         }
 
+        //enable rotationMapping only in analyse and align modes
+        if((currentMode == ANALYSE) || (currentMode == ALIGN)) {
+        	set_rotationMappingIsOn(true);
+        } else {
+        	set_rotationMappingIsOn(false);
+        }
+
 		//from idle to analyseMode
 		if((get_selector() == 1) && !(currentMode == ALIGN) && !(currentMode == PURSUIT)) {
 			currentMode = ANALYSE;
@@ -165,12 +177,19 @@ static THD_FUNCTION(CentralUnit, arg) {
 		}
 		//from alignementMode to pursuit
 		if((currentMode == ALIGN) && (get_regulationCompleted())) {
+			if(get_rotationMappingValue() >= 700) {
+				optimizedExitOnLeft = false;
+			} else {
+				optimizedExitOnLeft = true;
+			}
 			currentMode = PURSUIT;
 		}
 		//stop and idle
 		if((get_selector() == 15)) {
 			currentMode = STOP;
 		}
+
+		chprintf((BaseSequentialStream *)&SD3, "v=%d", optimizedExitOnLeft);
 
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
