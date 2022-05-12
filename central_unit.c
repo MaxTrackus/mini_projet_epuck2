@@ -151,6 +151,8 @@ static THD_FUNCTION(CentralUnit, arg) {
         	case EXIT:
         		break;
         	case RECENTER:
+        		set_goalLeftMotorPos(77);
+        		update_currentModeOfMove(MOVE_STRAIGHT_GIVEN_DISTANCE);
         		break;
         	default:
         		currentMode = IDLE;
@@ -183,7 +185,7 @@ static THD_FUNCTION(CentralUnit, arg) {
 			currentMode = STOP;
 		}
 
-		chprintf((BaseSequentialStream *)&SD3, "v=%d", optimizedExitOnLeft);
+//		chprintf((BaseSequentialStream *)&SD3, "v=%d", optimizedExitOnLeft);
 
         //enable rotationMapping only in analyse and align modes
         if((currentMode == ANALYSE) || (currentMode == ALIGN)) {

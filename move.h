@@ -8,7 +8,8 @@ typedef enum {
 	SPIN_LEFT, //to be added!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	MOVE_STRAIGHT,
 	SPIN_ALIGNEMENT, //for the align mode of central unit
-	MOVE_STRAIGHT_CORRECT_ALIGNEMENT, //for the pursuit mode of central unit
+	MOVE_STRAIGHT_CORRECT_ALIGNEMENT, //for the pursuit mode of central unit$
+	MOVE_STRAIGHT_GIVEN_DISTANCE,
 } move_mode;
 
 void spin_angle_degree(uint16_t angle_in_degree);
@@ -28,6 +29,7 @@ void set_movingSpeed(int speed);
 void update_currentModeOfMove(move_mode mode);
 void set_rotationMappingIsOn(bool status);
 int get_rotationMappingValue(void);
+void set_goalLeftMotorPos(int32_t nb_step);
 
 #endif /* MOVE_H */
 //uint16_t angle_in_degree
