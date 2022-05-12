@@ -11,6 +11,7 @@ typedef enum {
 	PURSUIT,
 	MEASURE,
 	PUSH,
+	ROTATE_BEFORE_FOLLOW, //////////////////////////////////////////////////////////////////////// test_max_1205 created
 	FOLLOW,
 	EXIT,
 	RECENTER

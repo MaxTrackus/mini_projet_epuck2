@@ -34,6 +34,7 @@
 #define	GOAL_PROXI_VALUE		200
 
 static bool foundWall = false;
+static bool usingStepCounters = false;
 //////////////////////////////////////////////////////////////////////// test_max_1205
 
 static volatile task_mode currentMode = IDLE;
@@ -153,6 +154,7 @@ static THD_FUNCTION(CentralUnit, arg) {
 //        			right_motor_pos_target = 385;
 //        			left_motor_pos_target = 385;
 //        			distanceToTravel = 0;
+
         			moving = true;
         			reset_motor_pos();
         			set_movingSpeed(DEFAULT_SPEED);
@@ -160,10 +162,34 @@ static THD_FUNCTION(CentralUnit, arg) {
         		}
         		volatile uint32_t current_motor_pos = get_right_motor_pos();
         		if ((current_motor_pos >= right_motor_pos_target)) {
-        			update_currentModeOfMove(FOLLOW);
-        			currentMode = IDLE;
+        			//////////////////////////////////////////////////////////////////////// test_max_1205 Commented
+//        			update_currentModeOfMove(FOLLOW);
+//        			currentMode = IDLE;
+        			//////////////////////////////////////////////////////////////////////// test_max_1205 Commented
+
+        			//////////////////////////////////////////////////////////////////////// test_max_1205
+        			update_currentModeOfMove(STOP_MOVE);
+        			currentMode = ROTATE_BEFORE_FOLLOW;
+        			//////////////////////////////////////////////////////////////////////// test_max_1205
         		}
         		break;
+
+        	//////////////////////////////////////////////////////////////////////// test_max_1205
+        	case ROTATE_BEFORE_FOLLOW:
+        		if (!usingStepCounters) {
+					left_motor_pos_target = 308; // to do a 90 degrees right rotation
+					reset_motor_pos();
+					set_movingSpeed(SLOW_SPEED);
+					update_currentModeOfMove(SPIN_RIGHT);
+				}
+				if ((get_left_motor_pos() >= left_motor_pos_target) && usingStepCounters) {
+					usingStepCounters = false;
+					reset_motor_pos();
+					currentMode = FOLLOW;
+				}
+
+        		break;
+        	//////////////////////////////////////////////////////////////////////// test_max_1205
 
         	case FOLLOW: ;
 //        		if (wallFound == false) {
@@ -244,36 +270,36 @@ static THD_FUNCTION(CentralUnit, arg) {
         		break;
         }
 
-//		//from idle to analyseMode
-//		if((get_selector() == 1) && !(currentMode == ALIGN) && !(currentMode == PURSUIT)) {
-//			currentMode = ANALYSE;
-//		}
-//		//from analyseMode to alignementMode
-//		if((currentMode == ANALYSE) && get_staticFoundLine()) {
-//			currentMode = ALIGN;
-//		}
-//		//from alignementMode to analyseMode
-//		if((currentMode == ALIGN) && (!(get_staticFoundLine()))) {
-//			currentMode = ANALYSE;
-//		}
-//		//from alignementMode to pursuit
-//		if((currentMode == ALIGN) && (get_regulationCompleted())) {
-//			if(get_rotationMappingValue() >= 700) { // must be calibrated, maybe 700 is not the good parameter. must test with the rotation of a certain angle when avalaible
-//				optimizedExitOnLeft = false;
-//			} else {
-//				optimizedExitOnLeft = true;
-//			}
-//			currentMode = PURSUIT;
-//		}
+		//from idle to analyseMode
+		if((get_selector() == 1) && !(currentMode == ALIGN) && !(currentMode == PURSUIT)) {
+			currentMode = ANALYSE;
+		}
+		//from analyseMode to alignementMode
+		if((currentMode == ANALYSE) && get_staticFoundLine()) {
+			currentMode = ALIGN;
+		}
+		//from alignementMode to analyseMode
+		if((currentMode == ALIGN) && (!(get_staticFoundLine()))) {
+			currentMode = ANALYSE;
+		}
+		//from alignementMode to pursuit
+		if((currentMode == ALIGN) && (get_regulationCompleted())) {
+			if(get_rotationMappingValue() >= 700) { // must be calibrated, maybe 700 is not the good parameter. must test with the rotation of a certain angle when avalaible
+				optimizedExitOnLeft = false;
+			} else {
+				optimizedExitOnLeft = true;
+			}
+			currentMode = PURSUIT;
+		}
 		//stop and idle
 		if((get_selector() == 15)) {
 			currentMode = STOP;
 		}
 
 		//////////////////////////////////////////////////////////////////////// test_max_1205
-		if(get_selector() == 1) {
-			currentMode = FOLLOW;
-		}
+//		if(get_selector() == 1) {
+//			currentMode = FOLLOW;
+//		}
 		//////////////////////////////////////////////////////////////////////// test_max_1205
 
 //		chprintf((BaseSequentialStream *)&SD3, "v=%d", optimizedExitOnLeft);
