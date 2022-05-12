@@ -88,6 +88,19 @@ static THD_FUNCTION(StepTracker, arg) {
     }
 }
 
+void reset_motor_pos(void) {
+     left_motor_set_pos(0);
+ 	 right_motor_set_pos(0);
+}
+
+uint32_t get_right_motor_pos(void) {
+	return right_motor_get_pos();
+}
+
+uint32_t get_left_motor_pos(void) {
+	return left_motor_get_pos();
+}
+
 void set_movingSpeed(int speed) {
 	movingSpeed = motor_speed_protection(speed);
 }

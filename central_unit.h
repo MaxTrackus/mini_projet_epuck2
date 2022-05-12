@@ -6,4 +6,9 @@ void central_unit_start(void);
 
 void set_mode_with_selector(void);
 
+void set_right_rotation_in_degrees(uint16_t angle_in_degree);
+void set_left_rotation_in_degrees(uint16_t angle_in_degree);
+void set_straight_move_in_mm(uint32_t distance_in_mm);
+
+
 #endif /* CENTRAL_UNIT_H */

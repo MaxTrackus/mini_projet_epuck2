@@ -14,22 +14,23 @@
 #include <pi_regulator.h>
 #include <proxi.h>
 
-#define DEFAULT_SPEED					200 // [steps/s]
-#define SLOW_SPEED						50 	// [steps/s]
-#define	OBJECT_DIAMETER					30 	// [mm]	
-#define ERROR_MARGIN					75 	// [mm]
-#define WALL_CLEARANCE					0 	// [mm]
-#define SEC2MSEC						1000  //1000
-#define MAX_MOTOR_SPEED					1100 // [steps/s]
-#define NSTEP_ONE_TURN      			100 // number of step for 1 turn of the motor
-#define WHEEL_PERIMETER     			130 // [mm]
+#define DEFAULT_SPEED					200 		// [steps/s]
+#define SLOW_SPEED						50 			// [steps/s]
+#define	OBJECT_DIAMETER					30 			// [mm]	
+#define ERROR_MARGIN					75 			// [mm]
+#define WALL_CLEARANCE					0 			// [mm]
+#define SEC2MSEC						1000 		//1000
+#define MAX_MOTOR_SPEED					1100 		// [steps/s]
+#define NSTEP_ONE_TURN      			100 		// number of step for 1 turn of the motor
+#define WHEEL_PERIMETER     			130 		// [mm]
 
 #define QUARTER_TURN					90
-#define MOTOR_STEP_TO_DEGREES			360 //find other name maybe
+#define MOTOR_STEP_TO_DEGREES			360 		//find other name maybe
 #define	PROX_DETECTION_THRESHOLD		150 
 
-
-
+#define TRACK_WIDTH						51			// [mm]
+#define TWENTY_DEGREES					20 			// [degree]
+#define	DEG2RAD							(M_PI)/180
 
 typedef enum {
 	IDLE,
@@ -51,6 +52,9 @@ static volatile uint16_t distanceToTravel = 0;
 static volatile bool wallFound = false;
 static bool optimizedExitOnLeft = true; //Jeremy's version of Max's flag given after rotation mapping
 static uint8_t exitProx = PROX_RIGHT;
+
+static volatile uint32_t motor_right_pos_target = 0;
+static volatile uint32_t motor_left_pos_target = 0;
 
 
 
@@ -77,28 +81,29 @@ static THD_FUNCTION(CentralUnit, arg) {
         		if (distanceToTravel == 0) {
         			distanceToTravel = VL53L0X_get_dist_mm(); //This saves the value to the object here
         			set_movingSpeed(SLOW_SPEED);
-        			currentTime = chVTGetSystemTime(); 
+        			reset_motor_pos();
+        			set_right_rotation_in_degrees(TWENTY_DEGREES);
         			update_currentModeInMove(SPIN_RIGHT);
         		}
         		
-        		volatile uint16_t tof_value = VL53L0X_get_dist_mm();
+        		volatile uint32_t motor_pos = get_left_motor_pos();
 
-        		if (tof_value > (distanceToTravel+OBJECT_DIAMETER+ERROR_MARGIN) && (wallFound == false)) {
-        			actionTime = chVTGetSystemTime() - currentTime;
-        			distanceToTravel = tof_value - distanceToTravel - WALL_CLEARANCE - OBJECT_DIAMETER;
-        			currentTime = chVTGetSystemTime();
+        		if ((motor_pos >= motor_left_pos_target) && (wallFound == false)) {
+        			distanceToTravel = VL53L0X_get_dist_mm() - distanceToTravel - WALL_CLEARANCE - OBJECT_DIAMETER;
+        			reset_motor_pos();
+        			set_left_rotation_in_degrees(TWENTY_DEGREES);
         			update_currentModeInMove(SPIN_LEFT);
         			wallFound = true;
         		}
 
         		//gets back to original position
-        		if ((chVTGetSystemTime() > (currentTime + actionTime)) && (wallFound == true)) {
+        		if ((get_right_motor_pos() >= motor_right_pos_target) && (wallFound == true)) {
         			update_currentModeInMove(STOP);
-        			currentProgramMode = PUSH;
+        			currentProgramMode = IDLE;
         			wallFound = false;
         			currentTime = 0;
         			actionTime = 0;
-        			VL53L0X_stop();
+        			//VL53L0X_stop();
         		}
         		break;
         	case PUSH:
@@ -175,7 +180,7 @@ static THD_FUNCTION(CentralUnit, arg) {
 
 
 		//100Hz
-        chThdSleepUntilWindowed(time, time + MS2ST(10));
+        chThdSleepUntil(MS2ST(10));
 
 // 		//analyseMode
 // 		if(currentMode == ANALYSE) {
@@ -281,6 +286,21 @@ void set_mode_with_selector(void) {
 			currentProgramMode = IDLE;
 			break;
 	}
+}
+
+void set_right_rotation_in_degrees(uint16_t angle_in_degree) {
+//	motor_right_pos_target = -((DEG2RAD) * angle_in_degree * TRACK_WIDTH * NSTEP_ONE_TURN)/(2 * WHEEL_PERIMETER);
+	motor_left_pos_target = (uint32_t)(((DEG2RAD) * angle_in_degree * TRACK_WIDTH * NSTEP_ONE_TURN)/(2 * WHEEL_PERIMETER));
+}
+
+void set_left_rotation_in_degrees(uint16_t angle_in_degree) {
+	motor_right_pos_target = ((DEG2RAD) * angle_in_degree * TRACK_WIDTH * NSTEP_ONE_TURN)/(2 * WHEEL_PERIMETER);
+//	motor_left_pos_target = -((DEG2RAD) * angle_in_degree * TRACK_WIDTH * NSTEP_ONE_TURN)/(2 * WHEEL_PERIMETER);
+}
+
+void set_straight_move_in_mm(uint32_t distance_in_mm) {
+	motor_right_pos_target = (distance_in_mm)/(WHEEL_PERIMETER/NSTEP_ONE_TURN);
+	motor_left_pos_target = (distance_in_mm)/(WHEEL_PERIMETER/NSTEP_ONE_TURN);
 }
 
 void central_unit_start(void){
