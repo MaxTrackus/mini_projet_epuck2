@@ -12,6 +12,7 @@
 #include <process_image.h>
 #include <move.h>
 #include <pi_regulator.h>
+#include <proxi.h>
 
 #define DEFAULT_SPEED					200 // [steps/s]
 #define SLOW_SPEED						50 	// [steps/s]
@@ -25,6 +26,7 @@
 
 #define QUARTER_TURN					90
 #define MOTOR_STEP_TO_DEGREES			360 //find other name maybe
+#define	PROX_DETECTION_THRESHOLD		150 
 
 
 
@@ -42,11 +44,13 @@ typedef enum {
 	RECENTER
 } program_mode;
 
-static volatile uint8_t currentProgramMode = MEASURE;
+static volatile uint8_t currentProgramMode = FOLLOW;
 static volatile systime_t currentTime = 0;
 static volatile uint32_t actionTime = 0;
 static volatile uint16_t distanceToTravel = 0;
 static volatile bool wallFound = false;
+static bool optimizedExitOnLeft = true; //Jeremy's version of Max's flag given after rotation mapping
+static uint8_t exitProx = PROX_RIGHT;
 
 
 
@@ -115,19 +119,49 @@ static THD_FUNCTION(CentralUnit, arg) {
         		}
         		break;
         	case FOLLOW:
-        		if (actionTime == 0) {
-        			actionTime = (QUARTER_TURN * DEFAULT_SPEED * SEC2MSEC)/(MOTOR_STEP_TO_DEGREES);
-        			set_movingSpeed(DEFAULT_SPEED);
-        			currentTime = chVTGetSystemTime();
-        			update_currentModeInMove(SPIN_LEFT); //depends on the flag given by MAX
-        		}
+        		if (wallFound == false) {
+	        		if (actionTime == 0) {
+	        			//0.6 motor turn for 360 degree turn
+	        			actionTime = 1625;//(QUARTER_TURN * DEFAULT_SPEED * SEC2MSEC)/(MOTOR_STEP_TO_DEGREES);
+	        			set_movingSpeed(DEFAULT_SPEED);
+	        			currentTime = chVTGetSystemTime();
+	        			if (optimizedExitOnLeft) {
+	        				update_currentModeInMove(SPIN_LEFT); //depends on the flag given by MAX
+	        				exitProx = PROX_RIGHT;
+	        			} else {
+	        				update_currentModeInMove(SPIN_RIGHT); //depends on the flag given by MAX
+	        				exitProx = PROX_LEFT;
 
-        		if (chVTGetSystemTime() >= (currentTime + MS2ST(actionTime))) {
-        			update_currentModeInMove(STOP);
-        			currentProgramMode = IDLE;
-        			actionTime = 0;
-        			currentTime = 0;
-        		}
+	        			}
+	        			
+	        		}
+
+	        		if (chVTGetSystemTime() >= (currentTime + MS2ST(actionTime))) {
+	        			update_currentModeInMove(STOP);
+	        			//currentProgramMode = IDLE;
+	        			actionTime = 0;
+	        			currentTime = 0;
+	        			wallFound = true;
+	        		}
+	        	} else {
+	        		bool *prox_status_table = get_prox_activation_status(PROX_DETECTION_THRESHOLD);
+//	        		int *prox_values = get_prox_value();
+
+	        		set_movingSpeed(DEFAULT_SPEED);
+	        		if (prox_status_table[PROX_FRONT_LEFT_49] == true) {
+						update_currentModeInMove(SPIN_RIGHT);
+					} else if (prox_status_table[PROX_FRONT_RIGHT_49] == true) {
+						update_currentModeInMove(SPIN_LEFT);
+					}
+					else if (prox_status_table[exitProx] == false) {
+						update_currentModeInMove(STOP);
+						currentProgramMode = IDLE;
+					}
+					else {
+						update_currentModeInMove(MOVE_STRAIGHT);
+					}
+
+	        	}
 
         		break;
         	case EXIT:
