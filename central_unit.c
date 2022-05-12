@@ -17,9 +17,9 @@
 #define DEFAULT_SPEED					200 // [steps/s]
 #define SLOW_SPEED						50 	// [steps/s]
 #define	OBJECT_DIAMETER					30 	// [mm]	
-#define ERROR_MARGIN					2 	// [mm]
-#define WALL_CLEARANCE					100 	// [mm]
-#define SEC2MSEC						38  //1000
+#define ERROR_MARGIN					75 	// [mm]
+#define WALL_CLEARANCE					0 	// [mm]
+#define SEC2MSEC						1000  //1000
 #define MAX_MOTOR_SPEED					1100 // [steps/s]
 #define NSTEP_ONE_TURN      			100 // number of step for 1 turn of the motor
 #define WHEEL_PERIMETER     			130 // [mm]
@@ -44,7 +44,7 @@ typedef enum {
 	RECENTER
 } program_mode;
 
-static volatile uint8_t currentProgramMode = FOLLOW;
+static volatile uint8_t currentProgramMode = MEASURE;
 static volatile systime_t currentTime = 0;
 static volatile uint32_t actionTime = 0;
 static volatile uint16_t distanceToTravel = 0;
@@ -81,9 +81,9 @@ static THD_FUNCTION(CentralUnit, arg) {
         			update_currentModeInMove(SPIN_RIGHT);
         		}
         		
-        		uint16_t tof_value = VL53L0X_get_dist_mm();
+        		volatile uint16_t tof_value = VL53L0X_get_dist_mm();
 
-        		if (tof_value > (distanceToTravel+OBJECT_DIAMETER+ERROR_MARGIN)) {
+        		if (tof_value > (distanceToTravel+OBJECT_DIAMETER+ERROR_MARGIN) && (wallFound == false)) {
         			actionTime = chVTGetSystemTime() - currentTime;
         			distanceToTravel = tof_value - distanceToTravel - WALL_CLEARANCE - OBJECT_DIAMETER;
         			currentTime = chVTGetSystemTime();
@@ -122,7 +122,7 @@ static THD_FUNCTION(CentralUnit, arg) {
         		if (wallFound == false) {
 	        		if (actionTime == 0) {
 	        			//0.6 motor turn for 360 degree turn
-	        			actionTime = 1625;//(QUARTER_TURN * DEFAULT_SPEED * SEC2MSEC)/(MOTOR_STEP_TO_DEGREES);
+	        			actionTime = 3020*1.1;//(QUARTER_TURN * DEFAULT_SPEED * SEC2MSEC)/(MOTOR_STEP_TO_DEGREES);
 	        			set_movingSpeed(DEFAULT_SPEED);
 	        			currentTime = chVTGetSystemTime();
 	        			if (optimizedExitOnLeft) {
