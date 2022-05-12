@@ -9,9 +9,11 @@ typedef enum {
 	MOVE_STRAIGHT,
 	SPIN_ALIGNEMENT, //for the align mode of central unit
 	MOVE_STRAIGHT_CORRECT_ALIGNEMENT, //for the pursuit mode of central unit
+	//////////////////////////////////////////////////////////////////////// test_max_1205
+	MOVE_STRAIGHT_WITH_LEFT_MOTOR_CORRECTION,
+	//////////////////////////////////////////////////////////////////////// test_max_1205
 } move_mode;
 
-//void spin_angle_degree(uint16_t angle_in_degree);
 void move_start(void);
 bool toggle_boolean(bool x);
 void stopMove(void);
@@ -31,6 +33,10 @@ int get_rotationMappingValue(void);
 void reset_motor_pos(void);
 uint32_t get_right_motor_pos(void);
 uint32_t get_left_motor_pos(void);
+
+//////////////////////////////////////////////////////////////////////// test_max_1205
+void follow_left_wall_with_speed_correction(int16_t leftSpeedCorrection);
+//////////////////////////////////////////////////////////////////////// test_max_1205
 
 #endif /* MOVE_H */
 //uint16_t angle_in_degree

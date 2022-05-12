@@ -29,6 +29,13 @@
 #define MOTOR_STEP_TO_DEGREES			360 //find other name maybe
 #define	PROX_DETECTION_THRESHOLD		150
 
+//////////////////////////////////////////////////////////////////////// test_max_1205
+#define	SPEED_CORRECTION_SENSIBILITY_OVER_PROXI		2
+#define	GOAL_PROXI_VALUE		200
+
+static bool foundWall = false;
+//////////////////////////////////////////////////////////////////////// test_max_1205
+
 static volatile task_mode currentMode = IDLE;
 static volatile systime_t currentTime = 0;
 static volatile uint32_t actionTime = 0;
@@ -45,7 +52,7 @@ static uint32_t	left_motor_pos_target = 0;
 
 static uint8_t lostLineCounter = 0;
 
-static THD_WORKING_AREA(waCentralUnit, 256);
+static THD_WORKING_AREA(waCentralUnit, 1024);
 static THD_FUNCTION(CentralUnit, arg) {
 
     chRegSetThreadName(__FUNCTION__);
@@ -63,6 +70,7 @@ static THD_FUNCTION(CentralUnit, arg) {
         currentMode == MEASURE ? set_led(LED5, 1) : set_led(LED5, 0);
         currentMode == PUSH ? set_led(LED7, 1) : set_led(LED7, 0);
         currentMode == FOLLOW ? set_led(LED1, 1) : set_led(LED1, 0);
+        currentMode == EXIT ? set_led(LED3, 1) : set_led(LED3, 0);
 
         switch(currentMode) {
         	case IDLE:
@@ -157,48 +165,72 @@ static THD_FUNCTION(CentralUnit, arg) {
         		}
         		break;
 
-        	case FOLLOW:
-        		if (wallFound == false) {
-	        		if (actionTime == 0) {
-	        			//0.6 motor turn for 360 degree turn
-	        			actionTime = 3020*1.1;//(QUARTER_TURN * DEFAULT_SPEED * SEC2MSEC)/(MOTOR_STEP_TO_DEGREES);
-	        			set_movingSpeed(DEFAULT_SPEED);
-	        			currentTime = chVTGetSystemTime();
-	        			if (optimizedExitOnLeft) {
-	        				update_currentModeOfMove(SPIN_LEFT); //depends on the flag given by MAX
-	        				exitProx = PROX_RIGHT;
-	        			} else {
-	        				update_currentModeOfMove(SPIN_RIGHT); //depends on the flag given by MAX
-	        				exitProx = PROX_LEFT;
-	        			}
-	        		}
+        	case FOLLOW: ;
+//        		if (wallFound == false) {
+//	        		if (actionTime == 0) {
+//	        			//0.6 motor turn for 360 degree turn
+//	        			actionTime = 3020*1.1;//(QUARTER_TURN * DEFAULT_SPEED * SEC2MSEC)/(MOTOR_STEP_TO_DEGREES);
+//	        			set_movingSpeed(DEFAULT_SPEED);
+//	        			currentTime = chVTGetSystemTime();
+//	        			if (optimizedExitOnLeft) {
+//	        				update_currentModeOfMove(SPIN_LEFT); //depends on the flag given by MAX
+//	        				exitProx = PROX_RIGHT;
+//	        			} else {
+//	        				update_currentModeOfMove(SPIN_RIGHT); //depends on the flag given by MAX
+//	        				exitProx = PROX_LEFT;
+//	        			}
+//	        		}
+//
+//	        		if (chVTGetSystemTime() >= (currentTime + MS2ST(actionTime))) {
+//	        			update_currentModeOfMove(STOP);
+//	        			//currentProgramMode = IDLE;
+//	        			actionTime = 0;
+//	        			currentTime = 0;
+//	        			wallFound = true;
+//	        		}
+//	        	} else {
+//	        		bool *prox_status_table = get_prox_activation_status(PROX_DETECTION_THRESHOLD);
+//	        		int *prox_values = get_prox_value();
+//
+//	        		set_movingSpeed(DEFAULT_SPEED);
+//	        		if (prox_status_table[PROX_FRONT_LEFT_49] == true) {
+//	        			update_currentModeOfMove(SPIN_RIGHT);
+//					} else if (prox_status_table[PROX_FRONT_RIGHT_49] == true) {
+//						update_currentModeOfMove(SPIN_LEFT);
+//					}
+//					else if (prox_values[exitProx] <= 10) {
+//						update_currentModeOfMove(STOP);
+//						currentMode = IDLE;
+//					}
+//					else {
+//						update_currentModeOfMove(MOVE_STRAIGHT);
+//					}
+//
+//	        	}
 
-	        		if (chVTGetSystemTime() >= (currentTime + MS2ST(actionTime))) {
-	        			update_currentModeOfMove(STOP);
-	        			//currentProgramMode = IDLE;
-	        			actionTime = 0;
-	        			currentTime = 0;
-	        			wallFound = true;
-	        		}
-	        	} else {
-	        		bool *prox_status_table = get_prox_activation_status(PROX_DETECTION_THRESHOLD);
-	        		int *prox_values = get_prox_value();
+        		//////////////////////////////////////////////////////////////////////// test_max_1205
+        		set_movingSpeed(400);
+        		int *prox_values = get_prox_value();
+        		int16_t speedCorrection = (int16_t)(SPEED_CORRECTION_SENSIBILITY_OVER_PROXI * prox_values[PROX_FRONT_LEFT_49]) - (GOAL_PROXI_VALUE * SPEED_CORRECTION_SENSIBILITY_OVER_PROXI);
+        		if((!foundWall) && (prox_values[PROX_FRONT_LEFT_49] <= GOAL_PROXI_VALUE)) {
+        			speedCorrection = 0;
+        		} else {
+        			foundWall = true;
+        		}
+        		follow_left_wall_with_speed_correction(speedCorrection);
 
-	        		set_movingSpeed(DEFAULT_SPEED);
-	        		if (prox_status_table[PROX_FRONT_LEFT_49] == true) {
-	        			update_currentModeOfMove(SPIN_RIGHT);
-					} else if (prox_status_table[PROX_FRONT_RIGHT_49] == true) {
-						update_currentModeOfMove(SPIN_LEFT);
+        		bool *prox_status_table = get_prox_activation_status(PROX_DETECTION_THRESHOLD);
+				if ((prox_status_table[PROX_FRONT_LEFT_49] == false) && foundWall) {
+					update_currentModeOfMove(MOVE_STRAIGHT);
+					if(prox_status_table[PROX_LEFT] == false) {
+						foundWall = false;
+						update_currentModeOfMove(STOP_MOVE);
+						currentMode = EXIT;
 					}
-					else if (prox_values[exitProx] <= 10) {
-						update_currentModeOfMove(STOP);
-						currentMode = IDLE;
-					}
-					else {
-						update_currentModeOfMove(MOVE_STRAIGHT);
-					}
+				}
 
-	        	}
+//        		chprintf((BaseSequentialStream *)&SD3, "v=%d", prox_status_table[PROX_LEFT]);
+        		//////////////////////////////////////////////////////////////////////// test_max_1205
         		break;
 
         	case EXIT:
@@ -212,33 +244,39 @@ static THD_FUNCTION(CentralUnit, arg) {
         		break;
         }
 
-		//from idle to analyseMode
-		if((get_selector() == 1) && !(currentMode == ALIGN) && !(currentMode == PURSUIT)) {
-			currentMode = ANALYSE;
-		}
-		//from analyseMode to alignementMode
-		if((currentMode == ANALYSE) && get_staticFoundLine()) {
-			currentMode = ALIGN;
-		}
-		//from alignementMode to analyseMode
-		if((currentMode == ALIGN) && (!(get_staticFoundLine()))) {
-			currentMode = ANALYSE;
-		}
-		//from alignementMode to pursuit
-		if((currentMode == ALIGN) && (get_regulationCompleted())) {
-			if(get_rotationMappingValue() >= 700) { // must be calibrated, maybe 700 is not the good parameter. must test with the rotation of a certain angle when avalaible
-				optimizedExitOnLeft = false;
-			} else {
-				optimizedExitOnLeft = true;
-			}
-			currentMode = PURSUIT;
-		}
+//		//from idle to analyseMode
+//		if((get_selector() == 1) && !(currentMode == ALIGN) && !(currentMode == PURSUIT)) {
+//			currentMode = ANALYSE;
+//		}
+//		//from analyseMode to alignementMode
+//		if((currentMode == ANALYSE) && get_staticFoundLine()) {
+//			currentMode = ALIGN;
+//		}
+//		//from alignementMode to analyseMode
+//		if((currentMode == ALIGN) && (!(get_staticFoundLine()))) {
+//			currentMode = ANALYSE;
+//		}
+//		//from alignementMode to pursuit
+//		if((currentMode == ALIGN) && (get_regulationCompleted())) {
+//			if(get_rotationMappingValue() >= 700) { // must be calibrated, maybe 700 is not the good parameter. must test with the rotation of a certain angle when avalaible
+//				optimizedExitOnLeft = false;
+//			} else {
+//				optimizedExitOnLeft = true;
+//			}
+//			currentMode = PURSUIT;
+//		}
 		//stop and idle
 		if((get_selector() == 15)) {
 			currentMode = STOP;
 		}
 
-		chprintf((BaseSequentialStream *)&SD3, "v=%d", optimizedExitOnLeft);
+		//////////////////////////////////////////////////////////////////////// test_max_1205
+		if(get_selector() == 1) {
+			currentMode = FOLLOW;
+		}
+		//////////////////////////////////////////////////////////////////////// test_max_1205
+
+//		chprintf((BaseSequentialStream *)&SD3, "v=%d", optimizedExitOnLeft);
 
         //enable rotationMapping only in analyse and align modes
         if((currentMode == ANALYSE) || (currentMode == ALIGN)) {

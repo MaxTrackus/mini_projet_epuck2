@@ -14,16 +14,18 @@
 #define MAX_MOTOR_SPEED					1100 // [steps/s]
 
 
-static int32_t goalLeftMotorPos = 0;
 static bool enableCallsOfFunctionThatUseStepTracker = true;
 static move_mode currentModeOfMove = STOP_MOVE;
 
 static bool rotationMappingIsOn = false;
 static int rotationMappingValue = 0;
 
-static bool currentlySpinning = false;
+static uint16_t movingSpeed = 0; // devrait être signed ?
 
-static uint16_t movingSpeed = 0;
+//////////////////////////////////////////////////////////////////////// test_max_1205
+static int16_t leftMotorCorrectionSpeed = 0;
+//////////////////////////////////////////////////////////////////////// test_max_1205
+
 
 static THD_WORKING_AREA(waStepTracker, 256);
 static THD_FUNCTION(StepTracker, arg) {
@@ -61,6 +63,13 @@ static THD_FUNCTION(StepTracker, arg) {
 				set_currentRegulatorMode(PURSUIT_CORRECTION);
 				break;
 
+			//////////////////////////////////////////////////////////////////////// test_max_1205
+			case MOVE_STRAIGHT_WITH_LEFT_MOTOR_CORRECTION:
+				left_motor_set_speed(movingSpeed + leftMotorCorrectionSpeed);
+				right_motor_set_speed(movingSpeed);
+				break;
+			//////////////////////////////////////////////////////////////////////// test_max_1205
+
 			default:
 			 stopMove();
         }
@@ -75,21 +84,17 @@ static THD_FUNCTION(StepTracker, arg) {
         }
 //        chprintf((BaseSequentialStream *)&SD3, "v=%d", rotationMappingValue);
 
-        // stepTracker for spinning
-        if(currentlySpinning) {
-    		if(left_motor_get_pos() >= goalLeftMotorPos) {
-    			goalLeftMotorPos = 0;
-    			left_motor_set_speed(0);
-    			right_motor_set_speed(0);
-    			enableCallsOfFunctionThatUseStepTracker = true;
-    			currentlySpinning = false;
-    		}
-        }
-
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
     }
 }
+
+//////////////////////////////////////////////////////////////////////// test_max_1205
+void follow_left_wall_with_speed_correction(int16_t leftSpeedCorrection) {
+	currentModeOfMove = MOVE_STRAIGHT_WITH_LEFT_MOTOR_CORRECTION;
+	leftMotorCorrectionSpeed = leftSpeedCorrection;
+}
+//////////////////////////////////////////////////////////////////////// test_max_1205
 
 void set_rotationMappingIsOn(bool status) {
 	if(rotationMappingIsOn && !status) {
@@ -137,27 +142,6 @@ int motor_speed_protection(int speed) {
 	}
 	return speed;
 }
-
-//// used at the end of the demo for rotation to the exit only
-//void spin_angle_degree(uint16_t angle_in_degree) {
-//	uint16_t angle = angle_in_degree*1.95;
-//	if(angle_in_degree > MAX_SPIN_ANGLE) {
-//		angle = 360;
-//	}
-//
-//	// unit of positions are steps
-//	if(enableCallsOfFunctionThatUseStepTracker) {
-//		left_motor_set_pos(0);
-//
-//		goalLeftMotorPos = (int32_t)((25/9)*angle);
-//		enableCallsOfFunctionThatUseStepTracker = false;
-//		currentlySpinning = true;
-//
-//		left_motor_set_speed(150);
-//		right_motor_set_speed(-150);
-//
-//	}
-//}
 
 void move_start(void){
 	chThdCreateStatic(waStepTracker, sizeof(waStepTracker), NORMALPRIO, StepTracker, NULL);
