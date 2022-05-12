@@ -7,6 +7,7 @@
 #include <leds.h>
 #include <selector.h>
 #include <sensors/VL53L0X/VL53L0X.h>
+#include <epuck1x/utility/utility.h> //used for wait function 
 
 #include <central_unit.h>
 #include <process_image.h>
@@ -21,7 +22,7 @@
 #define WALL_CLEARANCE					10 	// [mm]
 #define SEC2MSEC						1000  //1000
 #define MAX_MOTOR_SPEED					1100 // [steps/s]
-#define NSTEP_ONE_TURN      			100 // number of step for 1 turn of the motor
+#define NSTEP_ONE_TURN      			1000 // number of step for 1 turn of the motor
 #define WHEEL_PERIMETER     			130 // [mm]
 
 #define QUARTER_TURN					90
@@ -51,6 +52,8 @@ static volatile uint16_t distanceToTravel = 0;
 static volatile bool wallFound = false;
 static bool optimizedExitOnLeft = true; //Jeremy's version of Max's flag given after rotation mapping
 static uint8_t exitProx = PROX_RIGHT;
+
+static bool moving = false;
 
 static uint32_t	right_motor_pos_target = 0;
 static uint32_t	left_motor_pos_target = 0;
@@ -87,8 +90,10 @@ static THD_FUNCTION(CentralUnit, arg) {
         		volatile uint16_t tof = VL53L0X_get_dist_mm();
 
         		if ((get_left_motor_pos() >= left_motor_pos_target) && (wallFound == false)) {
+        			update_currentModeInMove(STOP);
+        			wait(800000);
         			wallFound = true;
-        			distanceToTravel = 50;//tof - distanceToTravel - OBJECT_DIAMETER - WALL_CLEARANCE;
+        			distanceToTravel = VL53L0X_get_dist_mm() - distanceToTravel - OBJECT_DIAMETER - WALL_CLEARANCE;
         			right_motor_pos_target = 72;//1295;
         			reset_motor_pos();
         			set_movingSpeed(SLOW_SPEED);
@@ -102,14 +107,18 @@ static THD_FUNCTION(CentralUnit, arg) {
         		
         		break;
         	case PUSH:
-        		if ((distanceToTravel != 0)) {
+        		if ((distanceToTravel != 0) && (moving == false)) {
         			set_straight_move_in_mm(distanceToTravel);
-        			distanceToTravel = 0;
+//        			right_motor_pos_target = 385;
+//        			left_motor_pos_target = 385;
+//        			distanceToTravel = 0;
+        			moving = true;
         			reset_motor_pos();
         			set_movingSpeed(DEFAULT_SPEED);
         			update_currentModeInMove(MOVE_STRAIGHT);
         		}
-        		if ((get_right_motor_pos() >= right_motor_pos_target)) {
+        		volatile uint32_t current_motor_pos = get_right_motor_pos();
+        		if ((current_motor_pos >= right_motor_pos_target)) {
         			update_currentModeInMove(STOP);
         			currentProgramMode = IDLE;
         		}
@@ -288,6 +297,6 @@ void central_unit_start(void){
 }
 
 void set_straight_move_in_mm(uint32_t distance_in_mm) {
-	right_motor_pos_target = (distance_in_mm)/(WHEEL_PERIMETER/NSTEP_ONE_TURN);
-	left_motor_pos_target = (distance_in_mm)/(WHEEL_PERIMETER/NSTEP_ONE_TURN);
+	right_motor_pos_target = (distance_in_mm*NSTEP_ONE_TURN)/(WHEEL_PERIMETER);
+	left_motor_pos_target = (distance_in_mm*NSTEP_ONE_TURN)/(WHEEL_PERIMETER);
 }
