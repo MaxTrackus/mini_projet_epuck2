@@ -70,13 +70,7 @@ static THD_FUNCTION(StepTracker, arg) {
         	set_currentRegulatorMode(NOTHING);
         }
 
-        // rotationMapping during analyse and align modes
-        if(!rotationMappingIsOn) {
-        	enableCallsOfFunctionThatUseStepTracker = true;
-        	left_motor_set_pos(0);
-        }
         if(rotationMappingIsOn) {
-        	enableCallsOfFunctionThatUseStepTracker = false;
         	rotationMappingValue = left_motor_get_pos();
         }
 //        chprintf((BaseSequentialStream *)&SD3, "v=%d", rotationMappingValue);
@@ -98,6 +92,14 @@ static THD_FUNCTION(StepTracker, arg) {
 }
 
 void set_rotationMappingIsOn(bool status) {
+	if(rotationMappingIsOn && !status) {
+		enableCallsOfFunctionThatUseStepTracker = true;
+		left_motor_set_pos(0);
+	}
+	if(!rotationMappingIsOn && status) {
+		enableCallsOfFunctionThatUseStepTracker = false;
+		left_motor_set_pos(0);
+	}
 	rotationMappingIsOn = status;
 }
 
