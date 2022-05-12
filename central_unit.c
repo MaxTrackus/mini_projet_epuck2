@@ -18,7 +18,7 @@
 #define SLOW_SPEED						50 	// [steps/s]
 #define	OBJECT_DIAMETER					30 	// [mm]	
 #define ERROR_MARGIN					75 	// [mm]
-#define WALL_CLEARANCE					0 	// [mm]
+#define WALL_CLEARANCE					10 	// [mm]
 #define SEC2MSEC						1000  //1000
 #define MAX_MOTOR_SPEED					1100 // [steps/s]
 #define NSTEP_ONE_TURN      			100 // number of step for 1 turn of the motor
@@ -52,6 +52,8 @@ static volatile bool wallFound = false;
 static bool optimizedExitOnLeft = true; //Jeremy's version of Max's flag given after rotation mapping
 static uint8_t exitProx = PROX_RIGHT;
 
+static uint32_t	right_motor_pos_target = 0;
+static uint32_t	left_motor_pos_target = 0;
 
 
 //static uint8_t lostLineCounter = 0;
@@ -75,48 +77,46 @@ static THD_FUNCTION(CentralUnit, arg) {
         		break;
         	case MEASURE:
         		if (distanceToTravel == 0) {
-        			distanceToTravel = VL53L0X_get_dist_mm(); //This saves the value to the object here
+        			distanceToTravel = VL53L0X_get_dist_mm(); //gets distance to object
+        			left_motor_pos_target = 72;//1295;
+        			reset_motor_pos();
         			set_movingSpeed(SLOW_SPEED);
-        			currentTime = chVTGetSystemTime(); 
         			update_currentModeInMove(SPIN_RIGHT);
         		}
-        		
-        		volatile uint16_t tof_value = VL53L0X_get_dist_mm();
 
-        		if (tof_value > (distanceToTravel+OBJECT_DIAMETER+ERROR_MARGIN) && (wallFound == false)) {
-        			actionTime = chVTGetSystemTime() - currentTime;
-        			distanceToTravel = tof_value - distanceToTravel - WALL_CLEARANCE - OBJECT_DIAMETER;
-        			currentTime = chVTGetSystemTime();
-        			update_currentModeInMove(SPIN_LEFT);
+        		volatile uint16_t tof = VL53L0X_get_dist_mm();
+
+        		if ((get_left_motor_pos() >= left_motor_pos_target) && (wallFound == false)) {
         			wallFound = true;
+        			distanceToTravel = 50;//tof - distanceToTravel - OBJECT_DIAMETER - WALL_CLEARANCE;
+        			right_motor_pos_target = 72;//1295;
+        			reset_motor_pos();
+        			set_movingSpeed(SLOW_SPEED);
+        			update_currentModeInMove(SPIN_LEFT);
         		}
 
-        		//gets back to original position
-        		if ((chVTGetSystemTime() > (currentTime + actionTime)) && (wallFound == true)) {
+        		if ((get_right_motor_pos() >= right_motor_pos_target) && (wallFound == true)) {
         			update_currentModeInMove(STOP);
         			currentProgramMode = PUSH;
-        			wallFound = false;
-        			currentTime = 0;
-        			actionTime = 0;
-        			VL53L0X_stop();
         		}
+        		
         		break;
         	case PUSH:
-        		if ((actionTime == 0) && (distanceToTravel != 0)) {
-        			actionTime = ((distanceToTravel*SEC2MSEC)/(((DEFAULT_SPEED)/NSTEP_ONE_TURN)*WHEEL_PERIMETER)); // 1000 convert sec. -> msec.
-        			currentTime = chVTGetSystemTime();
+        		if ((distanceToTravel != 0)) {
+        			set_straight_move_in_mm(distanceToTravel);
+        			distanceToTravel = 0;
+        			reset_motor_pos();
         			set_movingSpeed(DEFAULT_SPEED);
         			update_currentModeInMove(MOVE_STRAIGHT);
         		}
-
-        		if (time >= (currentTime + MS2ST(actionTime))) {
+        		if ((get_right_motor_pos() >= right_motor_pos_target)) {
         			update_currentModeInMove(STOP);
-        			currentProgramMode = FOLLOW;
-        			distanceToTravel = 0;
-        			actionTime = 0;
-        			currentTime = 0;
-
+        			currentProgramMode = IDLE;
         		}
+        		
+
+
+
         		break;
         	case FOLLOW:
         		if (wallFound == false) {
@@ -285,4 +285,9 @@ void set_mode_with_selector(void) {
 
 void central_unit_start(void){
 	chThdCreateStatic(waCentralUnit, sizeof(waCentralUnit), NORMALPRIO, CentralUnit, NULL);
+}
+
+void set_straight_move_in_mm(uint32_t distance_in_mm) {
+	right_motor_pos_target = (distance_in_mm)/(WHEEL_PERIMETER/NSTEP_ONE_TURN);
+	left_motor_pos_target = (distance_in_mm)/(WHEEL_PERIMETER/NSTEP_ONE_TURN);
 }
