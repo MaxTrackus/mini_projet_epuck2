@@ -11,7 +11,7 @@ typedef enum {
 	MOVE_STRAIGHT_CORRECT_ALIGNEMENT, //for the pursuit mode of central unit
 } move_mode;
 
-void spin_angle_degree(uint16_t angle_in_degree);
+//void spin_angle_degree(uint16_t angle_in_degree);
 void move_start(void);
 bool toggle_boolean(bool x);
 void stopMove(void);
@@ -28,6 +28,9 @@ void set_movingSpeed(int speed);
 void update_currentModeOfMove(move_mode mode);
 void set_rotationMappingIsOn(bool status);
 int get_rotationMappingValue(void);
+void reset_motor_pos(void);
+uint32_t get_right_motor_pos(void);
+uint32_t get_left_motor_pos(void);
 
 #endif /* MOVE_H */
 //uint16_t angle_in_degree

@@ -7,25 +7,27 @@
 #include <leds.h>
 #include <selector.h>
 #include <sensors/VL53L0X/VL53L0X.h>
+#include <epuck1x/utility/utility.h> //used for wait function
 
 #include <central_unit.h>
 #include <process_image.h>
 #include <move.h>
 #include <pi_regulator.h>
+#include <proxi.h>
 
 #define DEFAULT_SPEED					200 // [steps/s]
 #define SLOW_SPEED						50 	// [steps/s]
 #define	OBJECT_DIAMETER					30 	// [mm]	
-#define ERROR_MARGIN					2 	// [mm]
-#define WALL_CLEARANCE					100 	// [mm]
-#define SEC2MSEC						38  //1000
+#define ERROR_MARGIN					75 	// [mm]
+#define WALL_CLEARANCE					10 	// [mm]
+#define SEC2MSEC						1000  //1000
 #define MAX_MOTOR_SPEED					1100 // [steps/s]
-#define NSTEP_ONE_TURN      			100 // number of step for 1 turn of the motor
+#define NSTEP_ONE_TURN      			1000 // number of step for 1 turn of the motor
 #define WHEEL_PERIMETER     			130 // [mm]
 
 #define QUARTER_TURN					90
 #define MOTOR_STEP_TO_DEGREES			360 //find other name maybe
-
+#define	PROX_DETECTION_THRESHOLD		150
 
 static volatile task_mode currentMode = IDLE;
 static volatile systime_t currentTime = 0;
@@ -33,7 +35,12 @@ static volatile uint32_t actionTime = 0;
 static volatile uint16_t distanceToTravel = 0;
 static volatile bool wallFound = false;
 static bool optimizedExitOnLeft = true;
+static uint8_t exitProx = PROX_RIGHT;
 
+static bool moving = false;
+
+static uint32_t	right_motor_pos_target = 0;
+static uint32_t	left_motor_pos_target = 0;
 
 static uint8_t lostLineCounter = 0;
 
@@ -52,10 +59,14 @@ static THD_FUNCTION(CentralUnit, arg) {
         currentMode == ANALYSE ? set_body_led(1) : set_body_led(0);
         currentMode == ALIGN ? set_led(LED1, 1) : set_led(LED1, 0);
         currentMode == PURSUIT ? set_led(LED3, 1) : set_led(LED3, 0);
+        currentMode == MEASURE ? set_led(LED5, 1) : set_led(LED5, 0);
+        currentMode == PUSH ? set_led(LED7, 1) : set_led(LED7, 0);
+        currentMode == FOLLOW ? set_led(LED1, 1) : set_led(LED1, 0);
 
         switch(currentMode) {
         	case IDLE:
         		break;
+
         	case STOP:
         		set_movingSpeed(DEFAULT_SPEED);
         		update_currentModeOfMove(STOP_MOVE);
@@ -84,74 +95,106 @@ static THD_FUNCTION(CentralUnit, arg) {
     				currentMode = STOP;
     			}
     			if(get_lineWidth() > (uint16_t)(400)) {
-    				currentMode = STOP;
+    				currentMode = MEASURE;
     			}
         		break;
+
         	case MEASURE:
         		if (distanceToTravel == 0) {
-        			distanceToTravel = VL53L0X_get_dist_mm(); //This saves the value to the object here
+        			distanceToTravel = VL53L0X_get_dist_mm(); //gets distance to object
+        			left_motor_pos_target = 72;//1295;
+        			reset_motor_pos();
         			set_movingSpeed(SLOW_SPEED);
-        			currentTime = chVTGetSystemTime(); 
         			update_currentModeOfMove(SPIN_RIGHT);
         		}
-        		
-        		uint16_t tof_value = VL53L0X_get_dist_mm();
 
-        		if (tof_value > (distanceToTravel+OBJECT_DIAMETER+ERROR_MARGIN)) {
-        			actionTime = chVTGetSystemTime() - currentTime;
-        			distanceToTravel = tof_value - distanceToTravel - WALL_CLEARANCE - OBJECT_DIAMETER;
-        			currentTime = chVTGetSystemTime();
-        			update_currentModeOfMove(SPIN_LEFT);
+//        		volatile uint16_t tof = VL53L0X_get_dist_mm(); // VOLATILE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        		if ((get_left_motor_pos() >= left_motor_pos_target) && (wallFound == false)) {
+        			update_currentModeOfMove(STOP);
+        			wait(800000);
         			wallFound = true;
+        			distanceToTravel = VL53L0X_get_dist_mm() - distanceToTravel - OBJECT_DIAMETER - WALL_CLEARANCE;
+        			right_motor_pos_target = 72;//1295;
+        			reset_motor_pos();
+        			set_movingSpeed(SLOW_SPEED);
+        			update_currentModeOfMove(SPIN_LEFT);
         		}
 
-        		//gets back to original position
-        		if ((chVTGetSystemTime() > (currentTime + actionTime)) && (wallFound == true)) {
+        		if ((get_right_motor_pos() >= right_motor_pos_target) && (wallFound == true)) {
         			update_currentModeOfMove(STOP);
         			currentMode = PUSH;
-        			wallFound = false;
-        			currentTime = 0;
-        			actionTime = 0;
-        			VL53L0X_stop();
         		}
         		break;
+
         	case PUSH:
-        		if ((actionTime == 0) && (distanceToTravel != 0)) {
-        			actionTime = ((distanceToTravel*SEC2MSEC)/(((DEFAULT_SPEED)/NSTEP_ONE_TURN)*WHEEL_PERIMETER)); // 1000 convert sec. -> msec.
-        			currentTime = chVTGetSystemTime();
+        		if ((distanceToTravel != 0) && (moving == false)) {
+        			set_straight_move_in_mm(distanceToTravel);
+//        			right_motor_pos_target = 385;
+//        			left_motor_pos_target = 385;
+//        			distanceToTravel = 0;
+        			moving = true;
+        			reset_motor_pos();
         			set_movingSpeed(DEFAULT_SPEED);
         			update_currentModeOfMove(MOVE_STRAIGHT);
         		}
-
-        		if (time >= (currentTime + MS2ST(actionTime))) {
-        			update_currentModeOfMove(STOP);
-        			currentMode = FOLLOW;
-        			distanceToTravel = 0;
-        			actionTime = 0;
-        			currentTime = 0;
-
-        		}
-        		break;
-        	case FOLLOW:
-        		if (actionTime == 0) {
-        			actionTime = (QUARTER_TURN * DEFAULT_SPEED * SEC2MSEC)/(MOTOR_STEP_TO_DEGREES);
-        			set_movingSpeed(DEFAULT_SPEED);
-        			currentTime = chVTGetSystemTime();
-        			update_currentModeOfMove(SPIN_LEFT); //depends on the flag given by MAX
-        		}
-
-        		if (chVTGetSystemTime() >= (currentTime + MS2ST(actionTime))) {
+        		volatile uint32_t current_motor_pos = get_right_motor_pos(); // VOLATILE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        		if ((current_motor_pos >= right_motor_pos_target)) {
         			update_currentModeOfMove(STOP);
         			currentMode = IDLE;
-        			actionTime = 0;
-        			currentTime = 0;
         		}
-
         		break;
+
+        	case FOLLOW:
+        		if (wallFound == false) {
+	        		if (actionTime == 0) {
+	        			//0.6 motor turn for 360 degree turn
+	        			actionTime = 3020*1.1;//(QUARTER_TURN * DEFAULT_SPEED * SEC2MSEC)/(MOTOR_STEP_TO_DEGREES);
+	        			set_movingSpeed(DEFAULT_SPEED);
+	        			currentTime = chVTGetSystemTime();
+	        			if (optimizedExitOnLeft) {
+	        				update_currentModeOfMove(SPIN_LEFT); //depends on the flag given by MAX
+	        				exitProx = PROX_RIGHT;
+	        			} else {
+	        				update_currentModeOfMove(SPIN_RIGHT); //depends on the flag given by MAX
+	        				exitProx = PROX_LEFT;
+	        			}
+	        		}
+
+	        		if (chVTGetSystemTime() >= (currentTime + MS2ST(actionTime))) {
+	        			update_currentModeOfMove(STOP);
+	        			//currentProgramMode = IDLE;
+	        			actionTime = 0;
+	        			currentTime = 0;
+	        			wallFound = true;
+	        		}
+	        	} else {
+	        		bool *prox_status_table = get_prox_activation_status(PROX_DETECTION_THRESHOLD);
+	        		int *prox_values = get_prox_value();
+
+	        		set_movingSpeed(DEFAULT_SPEED);
+	        		if (prox_status_table[PROX_FRONT_LEFT_49] == true) {
+	        			update_currentModeOfMove(SPIN_RIGHT);
+					} else if (prox_status_table[PROX_FRONT_RIGHT_49] == true) {
+						update_currentModeOfMove(SPIN_LEFT);
+					}
+					else if (prox_values[exitProx] <= 10) {
+						update_currentModeOfMove(STOP);
+						currentMode = IDLE;
+					}
+					else {
+						update_currentModeOfMove(MOVE_STRAIGHT);
+					}
+
+	        	}
+        		break;
+
         	case EXIT:
         		break;
+
         	case RECENTER:
         		break;
+
         	default:
         		currentMode = IDLE;
         		break;
@@ -236,3 +279,9 @@ void set_mode_with_selector(void) {
 void central_unit_start(void){
 	chThdCreateStatic(waCentralUnit, sizeof(waCentralUnit), NORMALPRIO, CentralUnit, NULL);
 }
+
+void set_straight_move_in_mm(uint32_t distance_in_mm) {
+	right_motor_pos_target = (distance_in_mm*NSTEP_ONE_TURN)/(WHEEL_PERIMETER);
+	left_motor_pos_target = (distance_in_mm*NSTEP_ONE_TURN)/(WHEEL_PERIMETER);
+}
+

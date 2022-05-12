@@ -111,6 +111,19 @@ void set_movingSpeed(int speed) {
 	movingSpeed = motor_speed_protection(speed);
 }
 
+void reset_motor_pos(void) {
+	left_motor_set_pos(0);
+	right_motor_set_pos(0);
+}
+
+uint32_t get_right_motor_pos(void) {
+	return right_motor_get_pos();
+}
+
+uint32_t get_left_motor_pos(void) {
+	return left_motor_get_pos();
+}
+
 void move_straight(int speed) {
 	left_motor_set_speed(speed);
 	right_motor_set_speed(speed);
@@ -125,26 +138,26 @@ int motor_speed_protection(int speed) {
 	return speed;
 }
 
-// used at the end of the demo for rotation to the exit only
-void spin_angle_degree(uint16_t angle_in_degree) {
-	uint16_t angle = angle_in_degree*1.95;
-	if(angle_in_degree > MAX_SPIN_ANGLE) {
-		angle = 360;
-	}
-
-	// unit of positions are steps
-	if(enableCallsOfFunctionThatUseStepTracker) {
-		left_motor_set_pos(0);
-
-		goalLeftMotorPos = (int32_t)((25/9)*angle);
-		enableCallsOfFunctionThatUseStepTracker = false;
-		currentlySpinning = true;
-
-		left_motor_set_speed(150);
-		right_motor_set_speed(-150);
-
-	}
-}
+//// used at the end of the demo for rotation to the exit only
+//void spin_angle_degree(uint16_t angle_in_degree) {
+//	uint16_t angle = angle_in_degree*1.95;
+//	if(angle_in_degree > MAX_SPIN_ANGLE) {
+//		angle = 360;
+//	}
+//
+//	// unit of positions are steps
+//	if(enableCallsOfFunctionThatUseStepTracker) {
+//		left_motor_set_pos(0);
+//
+//		goalLeftMotorPos = (int32_t)((25/9)*angle);
+//		enableCallsOfFunctionThatUseStepTracker = false;
+//		currentlySpinning = true;
+//
+//		left_motor_set_speed(150);
+//		right_motor_set_speed(-150);
+//
+//	}
+//}
 
 void move_start(void){
 	chThdCreateStatic(waStepTracker, sizeof(waStepTracker), NORMALPRIO, StepTracker, NULL);
