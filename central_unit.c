@@ -113,7 +113,7 @@ static THD_FUNCTION(CentralUnit, arg) {
         		//volatile uint16_t tof = VL53L0X_get_dist_mm();
 
         		if ((get_left_motor_pos() >= left_motor_pos_target) && (wallFound == false)) {
-        			update_currentModeOfMove(STOP);
+        			update_currentModeOfMove(STOP_MOVE);
 
         			// for (int i=0; i<8000; i++) {};
         			// wait(800000);
