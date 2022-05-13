@@ -11,20 +11,19 @@
 #include <proxi.h>
 
 #define MAX_SPIN_ANGLE		360
-#define MAX_MOTOR_SPEED					1100 // [steps/s]
+#define MAX_MOTOR_SPEED		1100 // [steps/s]
 
-
+// global use
 static bool enableCallsOfFunctionThatUseStepTracker = true;
 static move_mode currentModeOfMove = STOP_MOVE;
+static uint16_t movingSpeed = 0; // devrait être signed ?
 
+// rotation mapping
 static bool rotationMappingIsOn = false;
 static int rotationMappingValue = 0;
 
-static uint16_t movingSpeed = 0; // devrait être signed ?
-
-//////////////////////////////////////////////////////////////////////// test_max_1205
+// follow mode
 static int16_t leftMotorCorrectionSpeed = 0;
-//////////////////////////////////////////////////////////////////////// test_max_1205
 
 
 static THD_WORKING_AREA(waStepTracker, 256);
@@ -63,12 +62,10 @@ static THD_FUNCTION(StepTracker, arg) {
 				set_currentRegulatorMode(PURSUIT_CORRECTION);
 				break;
 
-			//////////////////////////////////////////////////////////////////////// test_max_1205
 			case MOVE_STRAIGHT_WITH_LEFT_MOTOR_CORRECTION:
 				left_motor_set_speed(movingSpeed + leftMotorCorrectionSpeed);
 				right_motor_set_speed(movingSpeed - leftMotorCorrectionSpeed);
 				break;
-			//////////////////////////////////////////////////////////////////////// test_max_1205
 
 			default:
 			 stopMove();
@@ -82,19 +79,16 @@ static THD_FUNCTION(StepTracker, arg) {
         if(rotationMappingIsOn) {
         	rotationMappingValue = left_motor_get_pos();
         }
-//        chprintf((BaseSequentialStream *)&SD3, "v=%d", rotationMappingValue);
 
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
     }
 }
 
-//////////////////////////////////////////////////////////////////////// test_max_1205
 void follow_left_wall_with_speed_correction(int16_t leftSpeedCorrection) {
 	currentModeOfMove = MOVE_STRAIGHT_WITH_LEFT_MOTOR_CORRECTION;
 	leftMotorCorrectionSpeed = leftSpeedCorrection;
 }
-//////////////////////////////////////////////////////////////////////// test_max_1205
 
 void set_rotationMappingIsOn(bool status) {
 	if(rotationMappingIsOn && !status) {
@@ -167,8 +161,6 @@ void update_currentModeOfMove(move_mode mode) {
 	currentModeOfMove = mode;
 }
 
-// BEGIN -- Added by j.Suchet on 04.05.22
-
 void motor_stop(void) {
 	left_motor_set_speed(0);
 	right_motor_set_speed(0);
@@ -184,17 +176,6 @@ void rotate_right(int speed) {
 	right_motor_set_speed(-speed);
 }
 
-// void rotate_right_in_degrees(int speed, float degrees) {
-
-// //	float duration = abs(degrees) / MOTOR_STEP_TO_DEGREES;
-// //	float start_time = chVTGetSystemTime();
-// //	do {
-// //		rotate_right(speed);
-// //	} while (chVTGetSystemTime() < start_time + MS2ST(duration));
-// //
-// //	motor_stop();
-// }
-
 void avoid_obstacles(int speed, int prox_detection_threshold) {
 
 	bool *prox_status_table = get_prox_activation_status(prox_detection_threshold);
@@ -208,24 +189,3 @@ void avoid_obstacles(int speed, int prox_detection_threshold) {
 		left_motor_set_speed(speed);
 	}
 }
-
-// void obstacles_avoidance_algorithm(void) {
-
-// 	if ((get_calibrated_prox(PROX_FRONT_RIGHT_49) > PROX_DETECTION_THRESHOLD) && (get_calibrated_prox(PROX_FRONT_LEFT_49) > PROX_DETECTION_THRESHOLD)) {
-// 		motor_stop();
-// //		rotate_left(MAX_SPEED);
-// 	} else if ((get_calibrated_prox(PROX_FRONT_LEFT_49) > PROX_DETECTION_THRESHOLD) || (get_calibrated_prox(PROX_FRONT_LEFT_17) > PROX_DETECTION_THRESHOLD)) {
-// 		motor_stop();
-// 		rotate_right(MAX_SPEED);
-// 	} else if ((get_calibrated_prox(PROX_FRONT_RIGHT_49) > PROX_DETECTION_THRESHOLD) || (get_calibrated_prox(PROX_FRONT_RIGHT_17) > PROX_DETECTION_THRESHOLD)) {
-// 		motor_stop();
-// 		rotate_left(MAX_SPEED);
-// 	} else {
-// 		motor_stop();
-// 		right_motor_set_speed(MAX_SPEED);
-//     	left_motor_set_speed(MAX_SPEED);
-// 	}
-
-// }
-
-// END -- Added by j.Suchet on 04.05.22

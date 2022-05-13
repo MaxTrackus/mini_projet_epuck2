@@ -29,22 +29,19 @@
 #define MOTOR_STEP_TO_DEGREES			360 //find other name maybe
 #define	PROX_DETECTION_THRESHOLD		10
 
-//////////////////////////////////////////////////////////////////////// test_max_1205
+// follow mode
 #define	SPEED_CORRECTION_SENSIBILITY_OVER_PROXI		2
-#define	GOAL_PROXI_VALUE		100
+#define	GOAL_PROXI_VALUE							150
 
+// follow mode
 static bool foundWall = false;
 static bool usingStepCounters = false;
-//////////////////////////////////////////////////////////////////////// test_max_1205
 
 static volatile task_mode currentMode = STOP;
-//static volatile systime_t currentTime = 0;
-//static volatile uint32_t actionTime = 0;
 static volatile uint16_t distanceToTravel = 0;
 static volatile bool wallFound = false;
 static bool wallMeasured = false;
 static bool optimizedExitOnLeft = true;
-//static uint8_t exitProx = PROX_RIGHT;
 
 static bool moving = false;
 
@@ -117,7 +114,6 @@ static THD_FUNCTION(CentralUnit, arg) {
         	case MEASURE:
         		if (distanceToTravel == 0) {
         			set_front_led(1);
-//        			chThdSleepMilliseconds(2000);
         			//faire un nouveau mode pour faire uniquement la mesure ? :thinking
         			do {
         				measurement_average += VL53L0X_get_dist_mm();
@@ -127,13 +123,11 @@ static THD_FUNCTION(CentralUnit, arg) {
         			distanceToTravel = measurement_average/20; //VL53L0X_get_dist_mm(); //gets distance to object
         			measurement_average = 0;
         			counter = 0;
-        			left_motor_pos_target = 72;//1295;
+        			left_motor_pos_target = 72;
         			reset_motor_pos();
         			set_movingSpeed(SLOW_SPEED);
         			update_currentModeOfMove(SPIN_RIGHT);
         		}
-
-        		//volatile uint16_t tof = VL53L0X_get_dist_mm();
 
         		if ((get_left_motor_pos() >= left_motor_pos_target) && (wallFound == false)) {
         			update_currentModeOfMove(STOP_MOVE);
@@ -149,7 +143,7 @@ static THD_FUNCTION(CentralUnit, arg) {
         		} else if ((wallFound == true) && (wallMeasured == false)) {
         			set_front_led(0);
         			reset_motor_pos();
-        			right_motor_pos_target = 72;//1295;
+        			right_motor_pos_target = 72;
         			wallMeasured = true;
 					set_movingSpeed(SLOW_SPEED);
 					update_currentModeOfMove(SPIN_LEFT);
@@ -177,22 +171,14 @@ static THD_FUNCTION(CentralUnit, arg) {
         		}
         		volatile uint32_t current_motor_pos = get_right_motor_pos();
         		if ((current_motor_pos >= right_motor_pos_target)) {
-        			//////////////////////////////////////////////////////////////////////// test_max_1205 Commented
-//        			update_currentModeOfMove(FOLLOW);
-//        			currentMode = IDLE;
-        			//////////////////////////////////////////////////////////////////////// test_max_1205 Commented
-
-        			//////////////////////////////////////////////////////////////////////// test_max_1205
         			moving = false;
         			left_motor_pos_target = 0;
         			right_motor_pos_target = 0;
         			update_currentModeOfMove(STOP_MOVE);
         			currentMode = ROTATE_BEFORE_FOLLOW;
-        			//////////////////////////////////////////////////////////////////////// test_max_1205
         		}
         		break;
 
-        	//////////////////////////////////////////////////////////////////////// test_max_1205
         	case ROTATE_BEFORE_FOLLOW:
         		if (!usingStepCounters) {
 					left_motor_pos_target = 308; // to do a 90 degrees right rotation
@@ -208,52 +194,8 @@ static THD_FUNCTION(CentralUnit, arg) {
 				}
 
         		break;
-        	//////////////////////////////////////////////////////////////////////// test_max_1205
 
         	case FOLLOW: ;
-//        		if (wallFound == false) {
-//	        		if (actionTime == 0) {
-//	        			//0.6 motor turn for 360 degree turn
-//	        			actionTime = 3020*1.1;//(QUARTER_TURN * DEFAULT_SPEED * SEC2MSEC)/(MOTOR_STEP_TO_DEGREES);
-//	        			set_movingSpeed(DEFAULT_SPEED);
-//	        			currentTime = chVTGetSystemTime();
-//	        			if (optimizedExitOnLeft) {
-//	        				update_currentModeOfMove(SPIN_LEFT); //depends on the flag given by MAX
-//	        				exitProx = PROX_RIGHT;
-//	        			} else {
-//	        				update_currentModeOfMove(SPIN_RIGHT); //depends on the flag given by MAX
-//	        				exitProx = PROX_LEFT;
-//	        			}
-//	        		}
-//
-//	        		if (chVTGetSystemTime() >= (currentTime + MS2ST(actionTime))) {
-//	        			update_currentModeOfMove(STOP);
-//	        			//currentProgramMode = IDLE;
-//	        			actionTime = 0;
-//	        			currentTime = 0;
-//	        			wallFound = true;
-//	        		}
-//	        	} else {
-//	        		bool *prox_status_table = get_prox_activation_status(PROX_DETECTION_THRESHOLD);
-//	        		int *prox_values = get_prox_value();
-//
-//	        		set_movingSpeed(DEFAULT_SPEED);
-//	        		if (prox_status_table[PROX_FRONT_LEFT_49] == true) {
-//	        			update_currentModeOfMove(SPIN_RIGHT);
-//					} else if (prox_status_table[PROX_FRONT_RIGHT_49] == true) {
-//						update_currentModeOfMove(SPIN_LEFT);
-//					}
-//					else if (prox_values[exitProx] <= 10) {
-//						update_currentModeOfMove(STOP);
-//						currentMode = IDLE;
-//					}
-//					else {
-//						update_currentModeOfMove(MOVE_STRAIGHT);
-//					}
-//
-//	        	}
-
-        		//////////////////////////////////////////////////////////////////////// test_max_1205
         		set_movingSpeed(400);
         		int *prox_values = get_prox_value();
         		int16_t speedCorrection = (int16_t)(SPEED_CORRECTION_SENSIBILITY_OVER_PROXI * prox_values[PROX_FRONT_LEFT_49]) - (GOAL_PROXI_VALUE * SPEED_CORRECTION_SENSIBILITY_OVER_PROXI);
@@ -273,9 +215,6 @@ static THD_FUNCTION(CentralUnit, arg) {
 						currentMode = EXIT;
 					}
 				}
-
-//        		chprintf((BaseSequentialStream *)&SD3, "v=%d", prox_status_table[PROX_LEFT]);
-        		//////////////////////////////////////////////////////////////////////// test_max_1205
         		break;
 
         	case EXIT:
@@ -315,14 +254,6 @@ static THD_FUNCTION(CentralUnit, arg) {
 			currentMode = STOP;
 		}
 
-		//////////////////////////////////////////////////////////////////////// test_max_1205
-//		if(get_selector() == 1) {
-//			currentMode = FOLLOW;
-//		}
-		//////////////////////////////////////////////////////////////////////// test_max_1205
-
-//		chprintf((BaseSequentialStream *)&SD3, "v=%d", optimizedExitOnLeft);
-
         //enable rotationMapping only in analyse and align modes
         if((currentMode == ANALYSE) || (currentMode == ALIGN)) {
         	set_rotationMappingIsOn(true);
@@ -335,41 +266,41 @@ static THD_FUNCTION(CentralUnit, arg) {
     }
 }
 
-//This is a function used for testing -> to remove for final 
-void set_mode_with_selector(void) {
-	switch (get_selector()) {
-		case 0:
-			currentMode = IDLE;
-			break;
-		case 1:
-			currentMode = ANALYSE;
-			break;
-		case 2:
-			currentMode = ALIGN;
-			break;
-		case 3:
-			currentMode = PURSUIT;
-			break;
-		case 4:
-			currentMode = MEASURE;
-			break;
-		case 5:
-			currentMode = PUSH;
-			break;
-		case 6:
-			currentMode = FOLLOW;
-			break;
-		case 7:
-			currentMode = EXIT;
-			break;
-		case 8:
-			currentMode = RECENTER;
-			break;
-		default:
-			currentMode = IDLE;
-			break;
-	}
-}
+////This is a function used for testing -> to remove for final
+//void set_mode_with_selector(void) {
+//	switch (get_selector()) {
+//		case 0:
+//			currentMode = IDLE;
+//			break;
+//		case 1:
+//			currentMode = ANALYSE;
+//			break;
+//		case 2:
+//			currentMode = ALIGN;
+//			break;
+//		case 3:
+//			currentMode = PURSUIT;
+//			break;
+//		case 4:
+//			currentMode = MEASURE;
+//			break;
+//		case 5:
+//			currentMode = PUSH;
+//			break;
+//		case 6:
+//			currentMode = FOLLOW;
+//			break;
+//		case 7:
+//			currentMode = EXIT;
+//			break;
+//		case 8:
+//			currentMode = RECENTER;
+//			break;
+//		default:
+//			currentMode = IDLE;
+//			break;
+//	}
+//}
 
 void central_unit_start(void){
 	chThdCreateStatic(waCentralUnit, sizeof(waCentralUnit), NORMALPRIO, CentralUnit, NULL);

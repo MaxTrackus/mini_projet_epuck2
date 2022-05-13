@@ -15,10 +15,6 @@
 
 #define MAX_PROX_VALUE					4.095 // to remove once completed
 
-// #define MAX_SPEED						200
-
-// #define MOTOR_STEP_TO_DEGREES			2.7
-
 #define PROX_DETECTION_THRESHOLD		100
 
 #define NB_PROX_SENSORS					8
@@ -43,42 +39,6 @@ int* get_prox_value(void) {
 	return prox_value;
 }
 
-
-// void obstacles_avoidance_algorithm(void) {
-
-// 	if ((get_calibrated_prox(PROX_FRONT_RIGHT_49) > PROX_DETECTION_THRESHOLD) && (get_calibrated_prox(PROX_FRONT_LEFT_49) > PROX_DETECTION_THRESHOLD)) {
-// 		motor_stop();
-// //		rotate_left(MAX_SPEED);
-// 	} else if ((get_calibrated_prox(PROX_FRONT_LEFT_49) > PROX_DETECTION_THRESHOLD) || (get_calibrated_prox(PROX_FRONT_LEFT_17) > PROX_DETECTION_THRESHOLD)) {
-// 		motor_stop();
-// 		rotate_right(MAX_SPEED);
-// 	} else if ((get_calibrated_prox(PROX_FRONT_RIGHT_49) > PROX_DETECTION_THRESHOLD) || (get_calibrated_prox(PROX_FRONT_RIGHT_17) > PROX_DETECTION_THRESHOLD)) {
-// 		motor_stop();
-// 		rotate_left(MAX_SPEED);
-// 	} else {
-// 		motor_stop();
-// 		right_motor_set_speed(MAX_SPEED);
-//     	left_motor_set_speed(MAX_SPEED);
-// 	}
-
-// }
-
-// void obstacles_follow_algorithm(void) {
-
-// 	bool follow_mode = false; 
-// 	bool exit_found = false; 
-
-// 	if (!exit_found) {
-// 		obstacles_avoidance_algorithm();
-// 	} else {
-// 		//rotate following external center
-// 		//go straight 
-// 		//go back to center
-// 	}
-// 	motor_stop();
-// }
-
-
 static THD_WORKING_AREA(waReadProx, 256); //???? How to know the size to allocate ?
 static THD_FUNCTION(ReadProx, arg) {
 
@@ -93,16 +53,7 @@ static THD_FUNCTION(ReadProx, arg) {
 
     	for (int i = 0; i < NB_PROX_SENSORS; ++i) {
 			prox_value[i] = get_calibrated_prox(i);
-		}	
-
-		// --- USED FOR TESTINGS ----
-		// bool *sensors_table = get_prox_activation_status(PROX_DETECTION_THRESHOLD);
-
-		// if (sensors_table[PROX_RIGHT]) {
-		// 	set_led_with_int(PROX_RIGHT);
-		// } else {
-		// 	clear_led_with_int(PROX_RIGHT);
-		// }
+		}
 
     	//100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
@@ -113,16 +64,14 @@ void read_prox_start(void) {
 	chThdCreateStatic(waReadProx, sizeof(waReadProx), NORMALPRIO, ReadProx, NULL);
 }
 
-void test_prox_with_leds(unsigned int sensor_number) {
-
-	volatile unsigned int prox_right_value = ((float)get_calibrated_prox(sensor_number)/(MAX_PROX_VALUE))*0.008; // Normalize proximity value to int of max value <= 9
-
-	set_led_with_int(prox_right_value);
-
-	wait(84000);
-
-	clear_led_with_int(prox_right_value);
-
-	// wait(84000);
-}
+//void test_prox_with_leds(unsigned int sensor_number) {
+//
+//	volatile unsigned int prox_right_value = ((float)get_calibrated_prox(sensor_number)/(MAX_PROX_VALUE))*0.008; // Normalize proximity value to int of max value <= 9
+//
+//	set_led_with_int(prox_right_value);
+//
+//	wait(84000);
+//
+//	clear_led_with_int(prox_right_value);
+//}
 

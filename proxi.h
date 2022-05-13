@@ -14,7 +14,7 @@
 bool* get_prox_activation_status(int prox_detection_threshold);
 int* get_prox_value(void);
 
-void test_prox_with_leds(unsigned int sensor_number);
+//void test_prox_with_leds(unsigned int sensor_number);
 void read_prox_start(void);
 void obstacles_avoidance_algorithm(void);
 

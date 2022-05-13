@@ -5,13 +5,11 @@
 typedef enum {
 	STOP_MOVE,
 	SPIN_RIGHT, //for the analyse mode of central unit
-	SPIN_LEFT, //to be added!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	SPIN_LEFT,
 	MOVE_STRAIGHT,
 	SPIN_ALIGNEMENT, //for the align mode of central unit
 	MOVE_STRAIGHT_CORRECT_ALIGNEMENT, //for the pursuit mode of central unit
-	//////////////////////////////////////////////////////////////////////// test_max_1205
 	MOVE_STRAIGHT_WITH_LEFT_MOTOR_CORRECTION,
-	//////////////////////////////////////////////////////////////////////// test_max_1205
 } move_mode;
 
 void move_start(void);
@@ -21,7 +19,6 @@ void update_currentModeOfMove(move_mode mode);
 
 void rotate_left(int speed);
 void rotate_right(int speed);
-// void rotate_right_in_degrees(int speed, float degrees);
 void motor_stop(void);
 void avoid_obstacles(int speed, int prox_detection_threshold);
 void move_straight(int speed);
@@ -34,9 +31,8 @@ void reset_motor_pos(void);
 uint32_t get_right_motor_pos(void);
 uint32_t get_left_motor_pos(void);
 
-//////////////////////////////////////////////////////////////////////// test_max_1205
+// follow mode
 void follow_left_wall_with_speed_correction(int16_t leftSpeedCorrection);
-//////////////////////////////////////////////////////////////////////// test_max_1205
 
 #endif /* MOVE_H */
 //uint16_t angle_in_degree
