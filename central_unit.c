@@ -53,6 +53,8 @@ static uint32_t	left_motor_pos_target = 0;
 
 static uint8_t lostLineCounter = 0;
 
+static uint16_t measurement_average = 0;
+
 static THD_WORKING_AREA(waCentralUnit, 1024);
 static THD_FUNCTION(CentralUnit, arg) {
 
@@ -105,6 +107,7 @@ static THD_FUNCTION(CentralUnit, arg) {
     				currentMode = STOP;
     			}
     			if(get_lineWidth() > (uint16_t)(400)) {
+    				update_currentModeOfMove(STOP_MOVE);
     				currentMode = MEASURE;
     			}
         		break;
@@ -112,7 +115,12 @@ static THD_FUNCTION(CentralUnit, arg) {
         	case MEASURE:
         		if (distanceToTravel == 0) {
         			set_front_led(1);
-        			distanceToTravel = VL53L0X_get_dist_mm(); //gets distance to object
+        			chThdSleepMilliseconds(2000);
+        			//faire un nouveau mode pour faire uniquement la mesure ? :thinking
+        			for (int i=0; i<20; i++) {
+        				measurement_average += VL53L0X_get_dist_mm();
+        			}
+        			distanceToTravel = measurement_average/20; //VL53L0X_get_dist_mm(); //gets distance to object
         			left_motor_pos_target = 72;//1295;
         			reset_motor_pos();
         			set_movingSpeed(SLOW_SPEED);
@@ -123,16 +131,9 @@ static THD_FUNCTION(CentralUnit, arg) {
 
         		if ((get_left_motor_pos() >= left_motor_pos_target) && (wallFound == false)) {
         			update_currentModeOfMove(STOP_MOVE);
-
-        			// for (int i=0; i<8000; i++) {};
-        			// wait(800000);
-        			chThdSleepMilliseconds(5000);
+        			chThdSleepMilliseconds(2000);
         			wallFound = true;
         			distanceToTravel = VL53L0X_get_dist_mm() - distanceToTravel - OBJECT_DIAMETER - WALL_CLEARANCE;
-        			// right_motor_pos_target = 72;//1295;
-        			// reset_motor_pos();
-        			// set_movingSpeed(SLOW_SPEED);
-        			// update_currentModeOfMove(SPIN_LEFT);
         		} else if ((wallFound == true) && (wallMeasured == false)) {
         			set_front_led(0);
         			reset_motor_pos();
@@ -144,6 +145,8 @@ static THD_FUNCTION(CentralUnit, arg) {
 
         		if ((get_right_motor_pos() >= right_motor_pos_target) && (wallMeasured == true)) {
         			update_currentModeOfMove(STOP);
+        			left_motor_pos_target = 0;
+        			right_motor_pos_target = 0;
         			currentMode = PUSH;
         		}
         		break;
@@ -151,9 +154,7 @@ static THD_FUNCTION(CentralUnit, arg) {
         	case PUSH:
         		if ((distanceToTravel != 0) && (moving == false)) {
         			set_straight_move_in_mm(distanceToTravel);
-//        			right_motor_pos_target = 385;
-//        			left_motor_pos_target = 385;
-//        			distanceToTravel = 0;
+       				distanceToTravel = 0;
 
         			moving = true;
         			reset_motor_pos();
