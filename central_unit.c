@@ -37,7 +37,7 @@ static bool foundWall = false;
 static bool usingStepCounters = false;
 //////////////////////////////////////////////////////////////////////// test_max_1205
 
-static volatile task_mode currentMode = IDLE;
+static volatile task_mode currentMode = STOP;
 //static volatile systime_t currentTime = 0;
 //static volatile uint32_t actionTime = 0;
 static volatile uint16_t distanceToTravel = 0;
@@ -159,6 +159,8 @@ static THD_FUNCTION(CentralUnit, arg) {
         			update_currentModeOfMove(STOP);
         			left_motor_pos_target = 0;
         			right_motor_pos_target = 0;
+        			wallFound = false;
+        			wallMeasured = false;
         			currentMode = PUSH;
         		}
         		break;
