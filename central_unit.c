@@ -181,16 +181,32 @@ static THD_FUNCTION(CentralUnit, arg) {
 
         	case ROTATE_BEFORE_FOLLOW:
         		if (!usingStepCounters) {
-					left_motor_pos_target = 308; // to do a 90 degrees right rotation
-					reset_motor_pos();
-					set_movingSpeed(DEFAULT_SPEED);
-					update_currentModeOfMove(SPIN_RIGHT);
-					usingStepCounters = true;
+        			if(optimizedExitOnLeft) {
+        				right_motor_pos_target = 308; // to do a 90 degrees right rotation
+						reset_motor_pos();
+						set_movingSpeed(DEFAULT_SPEED);
+						update_currentModeOfMove(SPIN_LEFT);
+						usingStepCounters = true;
+        			} else {
+        				left_motor_pos_target = 308; // to do a 90 degrees right rotation
+						reset_motor_pos();
+						set_movingSpeed(DEFAULT_SPEED);
+						update_currentModeOfMove(SPIN_RIGHT);
+						usingStepCounters = true;
+        			}
+
 				}
-				if ((get_left_motor_pos() >= left_motor_pos_target) && usingStepCounters) {
+        		if((!optimizedExitOnLeft) && (get_right_motor_pos() >= right_motor_pos_target) && usingStepCounters) {
+        			usingStepCounters = false;
+					reset_motor_pos();
+//					currentMode = FOLLOW;
+					currentMode = STOP;
+        		}
+				if (optimizedExitOnLeft && (get_left_motor_pos() >= left_motor_pos_target) && usingStepCounters) {
 					usingStepCounters = false;
 					reset_motor_pos();
-					currentMode = FOLLOW;
+//					currentMode = FOLLOW;
+					currentMode = STOP;
 				}
 
         		break;
@@ -242,6 +258,7 @@ static THD_FUNCTION(CentralUnit, arg) {
 		}
 		//from alignementMode to pursuit
 		if((currentMode == ALIGN) && (get_regulationCompleted())) {
+			// determine if it is shorter to follow the wall counterclockwise (true) or clockwise (false)
 			if(get_rotationMappingValue() >= 700) { // must be calibrated, maybe 700 is not the good parameter. must test with the rotation of a certain angle when avalaible
 				optimizedExitOnLeft = false;
 			} else {

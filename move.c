@@ -93,12 +93,11 @@ void follow_left_wall_with_speed_correction(int16_t leftSpeedCorrection) {
 void set_rotationMappingIsOn(bool status) {
 	if(rotationMappingIsOn && !status) {
 		enableCallsOfFunctionThatUseStepTracker = true;
-		left_motor_set_pos(0);
 	}
 	if(!rotationMappingIsOn && status) {
 		enableCallsOfFunctionThatUseStepTracker = false;
-		left_motor_set_pos(0);
 	}
+	left_motor_set_pos(0);
 	rotationMappingIsOn = status;
 }
 
