@@ -196,13 +196,13 @@ static THD_FUNCTION(CentralUnit, arg) {
         			}
 
 				}
-        		if((!optimizedExitOnLeft) && (get_right_motor_pos() >= right_motor_pos_target) && usingStepCounters) {
+        		if(optimizedExitOnLeft && (get_right_motor_pos() >= right_motor_pos_target) && usingStepCounters) {
         			usingStepCounters = false;
 					reset_motor_pos();
 //					currentMode = FOLLOW;
 					currentMode = STOP;
         		}
-				if (optimizedExitOnLeft && (get_left_motor_pos() >= left_motor_pos_target) && usingStepCounters) {
+				if ((!optimizedExitOnLeft) && (get_left_motor_pos() >= left_motor_pos_target) && usingStepCounters) {
 					usingStepCounters = false;
 					reset_motor_pos();
 //					currentMode = FOLLOW;
