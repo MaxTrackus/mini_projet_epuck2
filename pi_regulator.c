@@ -8,7 +8,10 @@
 #include <main.h> // pour les defines mais c'est tout pas censé normalement
 #include <process_image.h> // besoin pour avoir la line position mais pas censé on devrait changer
 
-static bool enablePiRegulator = false;
+static regulation_mode currentRegulatorMode = NOTHING;
+
+static uint8_t regulationCompletedCounter = 0;
+static bool regulationCompleted = false;
 
 //simple PI regulator implementation
 int16_t pi_regulator(float distance, float goal){
@@ -50,15 +53,49 @@ static THD_FUNCTION(PiRegulator, arg) {
     systime_t time;
 
     int16_t speed = 0;
-//    int16_t speed_correction = 0;
+    int16_t speed_correction = 0;
 
     while(1){
         time = chVTGetSystemTime();
 
-        if(enablePiRegulator) {
-        	speed = pi_regulator((float)get_line_position(), (IMAGE_BUFFER_SIZE/2));
-        	right_motor_set_speed(-speed);
-        	left_motor_set_speed(speed);
+        switch (currentRegulatorMode) {
+        	case NOTHING:
+        		regulationCompletedCounter = 0;
+        		regulationCompleted = false;
+        		break;
+			case ALIGN_ROTATION:
+				speed = pi_regulator((float)get_line_position(), (IMAGE_BUFFER_SIZE/2));
+				right_motor_set_speed(-speed);
+				left_motor_set_speed(speed);
+
+				if(speed < 5) {
+					++regulationCompletedCounter;
+				}
+				else {
+					regulationCompletedCounter = 0;
+				}
+
+				if(regulationCompletedCounter == 200) {
+					regulationCompleted = true;
+				}
+				break;
+			case PURSUIT_CORRECTION:
+				// must do something
+				//computes a correction factor to let the robot rotate to be in front of the line
+				speed_correction = (get_line_position() - (IMAGE_BUFFER_SIZE/2));
+
+				//if the line is nearly in front of the camera, don't rotate
+				if(abs(speed_correction) < ROTATION_THRESHOLD){
+					speed_correction = 0;
+				}
+
+				//applies the speed from the PI regulator and the correction for the rotation
+				right_motor_set_speed(200 - ROTATION_COEFF * speed_correction);
+				left_motor_set_speed(200 + ROTATION_COEFF * speed_correction);
+				break;
+			default:
+				regulationCompletedCounter = 0;
+				regulationCompleted = false;
         }
 
         //100Hz
@@ -66,8 +103,12 @@ static THD_FUNCTION(PiRegulator, arg) {
     }
 }
 
-void set_enablePiRegulator(bool status) {
-	enablePiRegulator = status;
+bool get_regulationCompleted(void) {
+	return regulationCompleted;
+}
+
+void set_currentRegulatorMode(regulation_mode mode) {
+	currentRegulatorMode = mode;
 }
 
 void pi_regulator_start(void){

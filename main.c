@@ -13,6 +13,7 @@
 #include <msgbus/messagebus.h>
 #include <spi_comm.h>
 #include <sensors/proximity.h>
+#include <sensors/VL53L0X/VL53L0X.h>
 
 
 #include <main.h>
@@ -28,9 +29,9 @@ CONDVAR_DECL(bus_condvar);
 
 void SendUint8ToComputer(uint8_t* data, uint16_t size) 
 {
-//	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)"START", 5);
-//	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)&size, sizeof(uint16_t));
-//	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)data, size);
+	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)"START", 5);
+	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)&size, sizeof(uint16_t));
+	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)data, size);
 
 //    chprintf((BaseSequentialStream *)&SD3, "pos=%d", get_line_position());
 }
@@ -68,6 +69,8 @@ int main(void)
     proximity_start();
 //    //start SPI communication
 //    spi_comm_start();
+    //starts the TOF thread
+    VL53L0X_start(); // a voir si on veut pas le mettre dans central unit avec thd stop...
     //starts the serial communication
     serial_start();
 

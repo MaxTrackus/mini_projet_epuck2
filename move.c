@@ -11,15 +11,21 @@
 #include <proxi.h>
 
 #define MAX_SPIN_ANGLE		360
+#define MAX_MOTOR_SPEED					1100 // [steps/s]
 
-static int32_t goalLeftMotorPos = 0;
+
 static bool enableCallsOfFunctionThatUseStepTracker = true;
-static uint8_t currentModeInMove = STOP;
+static move_mode currentModeOfMove = STOP_MOVE;
 
 static bool rotationMappingIsOn = false;
 static int rotationMappingValue = 0;
 
-static bool currentlySpinning = false;
+static uint16_t movingSpeed = 0; // devrait être signed ?
+
+//////////////////////////////////////////////////////////////////////// test_max_1205
+static int16_t leftMotorCorrectionSpeed = 0;
+//////////////////////////////////////////////////////////////////////// test_max_1205
+
 
 static THD_WORKING_AREA(waStepTracker, 256);
 static THD_FUNCTION(StepTracker, arg) {
@@ -32,79 +38,109 @@ static THD_FUNCTION(StepTracker, arg) {
     while(1){
         time = chVTGetSystemTime();
 
-        switch (currentModeInMove)
-        {
-             case STOP:
-            	 stopMove();
-            	 break;
-             case WAIT_MOVING:
-				 // do nothing
-            	 // we wait for the stepTracker to stop the motors
-				 break;
-             case ANALYSE:
-            	 stopMove();
-            	 spin_angle_degree(360);
-            	 break;
-             case ALIGN:
-            	 stopMove();
-            	 set_enablePiRegulator(true);
-            	 break;
-        	 case AVOID:
-	        	 stopMove();
-	        	 avoid_obstacles(200, 100);
-	        	 break;
-             default:
-            	 stopMove();
+        switch (currentModeOfMove) {
+			case STOP_MOVE:
+				stopMove();
+				break;
+
+			case SPIN_RIGHT:
+				rotate_right(movingSpeed);
+				break;
+
+			case SPIN_LEFT:
+				rotate_left(movingSpeed);
+				break;
+
+			case MOVE_STRAIGHT:
+				move_straight(movingSpeed);
+				break;
+
+			case SPIN_ALIGNEMENT:
+				set_currentRegulatorMode(ALIGN_ROTATION);
+				break;
+
+			case MOVE_STRAIGHT_CORRECT_ALIGNEMENT:
+				set_currentRegulatorMode(PURSUIT_CORRECTION);
+				break;
+
+			//////////////////////////////////////////////////////////////////////// test_max_1205
+			case MOVE_STRAIGHT_WITH_LEFT_MOTOR_CORRECTION:
+				left_motor_set_speed(movingSpeed + leftMotorCorrectionSpeed);
+				right_motor_set_speed(movingSpeed - leftMotorCorrectionSpeed);
+				break;
+			//////////////////////////////////////////////////////////////////////// test_max_1205
+
+			default:
+			 stopMove();
         }
 
-        // rotationMapping
-        if(((currentModeInMove == ANALYSE) || (currentModeInMove == ALIGN)) && !rotationMappingIsOn) {
-        	rotationMappingIsOn = true;
-        	enableCallsOfFunctionThatUseStepTracker = false;
-        	left_motor_set_pos(0);
-        }
-        if(!(currentModeInMove == ANALYSE) && !(currentModeInMove == ALIGN) && rotationMappingIsOn) {
-        	rotationMappingIsOn = false;
-        	enableCallsOfFunctionThatUseStepTracker = true;
-        	rotationMappingValue = rotationMappingValue + left_motor_get_pos();
+        //disable PI regulator when the mode doesn't need it
+        if((!(currentModeOfMove == SPIN_ALIGNEMENT)) && (!(currentModeOfMove == MOVE_STRAIGHT_CORRECT_ALIGNEMENT))) {
+        	set_currentRegulatorMode(NOTHING);
         }
 
-        chprintf((BaseSequentialStream *)&SD3, "test=%d", rotationMappingValue);
-
-        // stepTracker for spinning
-        if(currentlySpinning) {
-    		if(left_motor_get_pos() >= goalLeftMotorPos) {
-    			goalLeftMotorPos = 0;
-    			left_motor_set_speed(0);
-    			right_motor_set_speed(0);
-    			enableCallsOfFunctionThatUseStepTracker = true;
-    			currentlySpinning = false;
-    		}
+        if(rotationMappingIsOn) {
+        	rotationMappingValue = left_motor_get_pos();
         }
+//        chprintf((BaseSequentialStream *)&SD3, "v=%d", rotationMappingValue);
 
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
     }
 }
 
-void spin_angle_degree(uint16_t angle_in_degree) {
-	uint16_t angle = angle_in_degree*1.95;
-	if(angle_in_degree > MAX_SPIN_ANGLE) {
-		angle = 360;
-	}
+//////////////////////////////////////////////////////////////////////// test_max_1205
+void follow_left_wall_with_speed_correction(int16_t leftSpeedCorrection) {
+	currentModeOfMove = MOVE_STRAIGHT_WITH_LEFT_MOTOR_CORRECTION;
+	leftMotorCorrectionSpeed = leftSpeedCorrection;
+}
+//////////////////////////////////////////////////////////////////////// test_max_1205
 
-	// unit of positions are steps
-	if(enableCallsOfFunctionThatUseStepTracker) {
+void set_rotationMappingIsOn(bool status) {
+	if(rotationMappingIsOn && !status) {
+		enableCallsOfFunctionThatUseStepTracker = true;
 		left_motor_set_pos(0);
-
-		goalLeftMotorPos = (int32_t)((25/9)*angle);
-		enableCallsOfFunctionThatUseStepTracker = false;
-		currentlySpinning = true;
-
-		left_motor_set_speed(150);
-		right_motor_set_speed(-150);
-
 	}
+	if(!rotationMappingIsOn && status) {
+		enableCallsOfFunctionThatUseStepTracker = false;
+		left_motor_set_pos(0);
+	}
+	rotationMappingIsOn = status;
+}
+
+int get_rotationMappingValue(void) {
+	return rotationMappingValue;
+}
+
+void set_movingSpeed(int speed) {
+	movingSpeed = motor_speed_protection(speed);
+}
+
+void reset_motor_pos(void) {
+	left_motor_set_pos(0);
+	right_motor_set_pos(0);
+}
+
+uint32_t get_right_motor_pos(void) {
+	return right_motor_get_pos();
+}
+
+uint32_t get_left_motor_pos(void) {
+	return left_motor_get_pos();
+}
+
+void move_straight(int speed) {
+	left_motor_set_speed(speed);
+	right_motor_set_speed(speed);
+}
+
+int motor_speed_protection(int speed) {
+	if (speed > MAX_MOTOR_SPEED) {
+		speed = MAX_MOTOR_SPEED;
+	} else if (speed < -MAX_MOTOR_SPEED) {
+		speed = -MAX_MOTOR_SPEED;
+	}
+	return speed;
 }
 
 void move_start(void){
@@ -124,11 +160,11 @@ void stopMove(void) {
 	left_motor_set_speed(0);
 	right_motor_set_speed(0);
 	enableCallsOfFunctionThatUseStepTracker = true;
-	set_enablePiRegulator(false);
+	set_currentRegulatorMode(NOTHING);
 }
 
-void update_currentModeInMove(uint8_t mode) {
-	currentModeInMove = mode;
+void update_currentModeOfMove(move_mode mode) {
+	currentModeOfMove = mode;
 }
 
 // BEGIN -- Added by j.Suchet on 04.05.22
