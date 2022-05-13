@@ -29,6 +29,8 @@
 #define MOTOR_STEP_TO_DEGREES			360 //find other name maybe
 #define	PROX_DETECTION_THRESHOLD		10
 
+#define NSAMPLE_TOF						20
+
 //////////////////////////////////////////////////////////////////////// test_max_1205
 #define	SPEED_CORRECTION_SENSIBILITY_OVER_PROXI		2
 #define	GOAL_PROXI_VALUE		100
@@ -117,14 +119,13 @@ static THD_FUNCTION(CentralUnit, arg) {
         	case MEASURE:
         		if (distanceToTravel == 0) {
         			set_front_led(1);
-//        			chThdSleepMilliseconds(2000);
         			//faire un nouveau mode pour faire uniquement la mesure ? :thinking
         			do {
         				measurement_average += VL53L0X_get_dist_mm();
         				counter += 1;
         				chThdSleepMilliseconds(100);
-        			} while (counter < 20);
-        			distanceToTravel = measurement_average/20; //VL53L0X_get_dist_mm(); //gets distance to object
+        			} while (counter < NSAMPLE_TOF);
+        			distanceToTravel = measurement_average/NSAMPLE_TOF; //VL53L0X_get_dist_mm(); //gets distance to object
         			measurement_average = 0;
         			counter = 0;
         			left_motor_pos_target = 72;//1295;
@@ -141,9 +142,9 @@ static THD_FUNCTION(CentralUnit, arg) {
 						measurement_average += VL53L0X_get_dist_mm();
 						counter += 1;
         				chThdSleepMilliseconds(100);
-					} while (counter < 20);
+					} while (counter < NSAMPLE_TOF);
         			wallFound = true;
-        			distanceToTravel = (measurement_average/20) - distanceToTravel - OBJECT_DIAMETER/* - WALL_CLEARANCE*/;
+        			distanceToTravel = (measurement_average/NSAMPLE_TOF) - distanceToTravel - OBJECT_DIAMETER/* - WALL_CLEARANCE*/;
         			measurement_average = 0;
 					counter = 0;
         		} else if ((wallFound == true) && (wallMeasured == false)) {
@@ -378,3 +379,11 @@ void set_straight_move_in_mm(uint32_t distance_in_mm) {
 	left_motor_pos_target = (distance_in_mm*NSTEP_ONE_TURN)/(WHEEL_PERIMETER);
 }
 
+// void take_average_TOF_in_mm(uint16_t static_variable, uint8_t n_samples) {
+// 	do {
+// 		static_variable += VL53L0X_get_dist_mm();
+// 		counter += 1;
+// 		chThdSleepMilliseconds(100);
+// 	} while (counter < 20);
+//         			distanceToTravel = measurement_average/20;
+// }

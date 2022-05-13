@@ -30,6 +30,7 @@ static uint16_t movingSpeed = 0; // devrait ?re signed ?
 static uint32_t	right_motor_pos_target = 0;
 static uint32_t	left_motor_pos_target = 0;
 static bool robotMoving = false; 
+static bool movementCompleted = false; //static used to pass the info to central unit that a movement is done
 
 //////////////////////////////////////////////////////////////////////// test_max_1205
 static int16_t leftMotorCorrectionSpeed = 0;
@@ -121,6 +122,12 @@ int get_rotationMappingValue(void) {
 	return rotationMappingValue;
 }
 
+bool get_movementCompleted(void) {
+	return movementCompleted;
+}
+
+
+
 void set_movingSpeed(int speed) {
 	movingSpeed = motor_speed_protection(speed);
 }
@@ -197,22 +204,26 @@ void rotate_right(int speed) {
 //how to know when movement finished.. _
 void rotate_in_degrees(int speed, int degrees) {
 	if (!robotMoving) {
+		movementCompleted = false;
 		reset_motor_pos();
         movingSpeed = motor_speed_protection(speed); //check with issue about moving speed uint...
         if (degrees > 0) {
         	left_motor_pos_target = (uint32_t)(((DEG2RAD) * degrees * TRACK_WIDTH * NSTEP_ONE_TURN)/(2 * WHEEL_PERIMETER));
         	currentModeOfMove = SPIN_RIGHT;
         } else {
-        	right_motor_pos_target = (uint32_t)(((DEG2RAD) * abs(degrees) * TRACK_WIDTH * NSTEP_ONE_TURN)/(2 * WHEEL_PERIMETER));
+        	right_motor_pos_target = (uint32_t)(((DEG2RAD) * (-degrees) * TRACK_WIDTH * NSTEP_ONE_TURN)/(2 * WHEEL_PERIMETER));
         	currentModeOfMove = SPIN_LEFT;
         }
         robotMoving = true;
 	} else { 
 		if ((degrees > 0) && (get_left_motor_pos() >= left_motor_pos_target)) {
+			//make a function with 3 following lines like finish_movement(void)... 
 			currentModeOfMove = STOP_MOVE;
+			movementCompleted = true;
 			reset_moving_static();
 		} else if ((degrees < 0) && (get_right_motor_pos() >= right_motor_pos_target)) {
 			currentModeOfMove = STOP_MOVE;
+			movementCompleted = true;
 			reset_moving_static();		
 		}
 	}

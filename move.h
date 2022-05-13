@@ -21,7 +21,7 @@ void update_currentModeOfMove(move_mode mode);
 
 void rotate_left(int speed);
 void rotate_right(int speed);
-// void rotate_right_in_degrees(int speed, float degrees);
+void rotate_in_degrees(int speed, int degrees);
 void motor_stop(void);
 void avoid_obstacles(int speed, int prox_detection_threshold);
 void move_straight(int speed);
@@ -30,6 +30,7 @@ void set_movingSpeed(int speed);
 void update_currentModeOfMove(move_mode mode);
 void set_rotationMappingIsOn(bool status);
 int get_rotationMappingValue(void);
+bool get_movementCompleted(void);
 void reset_motor_pos(void);
 uint32_t get_right_motor_pos(void);
 uint32_t get_left_motor_pos(void);
