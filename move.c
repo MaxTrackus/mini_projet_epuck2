@@ -66,7 +66,7 @@ static THD_FUNCTION(StepTracker, arg) {
 			//////////////////////////////////////////////////////////////////////// test_max_1205
 			case MOVE_STRAIGHT_WITH_LEFT_MOTOR_CORRECTION:
 				left_motor_set_speed(movingSpeed + leftMotorCorrectionSpeed);
-				right_motor_set_speed(movingSpeed);
+				right_motor_set_speed(movingSpeed - leftMotorCorrectionSpeed);
 				break;
 			//////////////////////////////////////////////////////////////////////// test_max_1205
 

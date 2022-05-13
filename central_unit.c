@@ -27,11 +27,11 @@
 
 #define QUARTER_TURN					90
 #define MOTOR_STEP_TO_DEGREES			360 //find other name maybe
-#define	PROX_DETECTION_THRESHOLD		150
+#define	PROX_DETECTION_THRESHOLD		10
 
 //////////////////////////////////////////////////////////////////////// test_max_1205
 #define	SPEED_CORRECTION_SENSIBILITY_OVER_PROXI		2
-#define	GOAL_PROXI_VALUE		200
+#define	GOAL_PROXI_VALUE		100
 
 static bool foundWall = false;
 static bool usingStepCounters = false;
@@ -143,7 +143,7 @@ static THD_FUNCTION(CentralUnit, arg) {
         				chThdSleepMilliseconds(100);
 					} while (counter < 20);
         			wallFound = true;
-        			distanceToTravel = (measurement_average/20) - distanceToTravel - OBJECT_DIAMETER - WALL_CLEARANCE;
+        			distanceToTravel = (measurement_average/20) - distanceToTravel - OBJECT_DIAMETER/* - WALL_CLEARANCE*/;
         			measurement_average = 0;
 					counter = 0;
         		} else if ((wallFound == true) && (wallMeasured == false)) {
