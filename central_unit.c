@@ -38,13 +38,13 @@ static bool usingStepCounters = false;
 //////////////////////////////////////////////////////////////////////// test_max_1205
 
 static volatile task_mode currentMode = IDLE;
-static volatile systime_t currentTime = 0;
-static volatile uint32_t actionTime = 0;
+//static volatile systime_t currentTime = 0;
+//static volatile uint32_t actionTime = 0;
 static volatile uint16_t distanceToTravel = 0;
 static volatile bool wallFound = false;
 static bool wallMeasured = false;
 static bool optimizedExitOnLeft = true;
-static uint8_t exitProx = PROX_RIGHT;
+//static uint8_t exitProx = PROX_RIGHT;
 
 static bool moving = false;
 
@@ -54,6 +54,7 @@ static uint32_t	left_motor_pos_target = 0;
 static uint8_t lostLineCounter = 0;
 
 static uint16_t measurement_average = 0;
+static uint8_t counter = 0;
 
 static THD_WORKING_AREA(waCentralUnit, 1024);
 static THD_FUNCTION(CentralUnit, arg) {
@@ -72,8 +73,9 @@ static THD_FUNCTION(CentralUnit, arg) {
         currentMode == PURSUIT ? set_led(LED3, 1) : set_led(LED3, 0);
         currentMode == MEASURE ? set_led(LED5, 1) : set_led(LED5, 0);
         currentMode == PUSH ? set_led(LED7, 1) : set_led(LED7, 0);
-        currentMode == FOLLOW ? set_led(LED1, 1) : set_led(LED1, 0);
-        currentMode == EXIT ? set_led(LED3, 1) : set_led(LED3, 0);
+        currentMode == ROTATE_BEFORE_FOLLOW ? set_led(LED1, 1) : set_led(LED1, 0);
+        currentMode == FOLLOW ? set_led(LED3, 1) : set_led(LED3, 0);
+		currentMode == EXIT ? set_led(LED5, 1) : set_led(LED5, 0);
 
         switch(currentMode) {
         	case IDLE:
@@ -115,12 +117,16 @@ static THD_FUNCTION(CentralUnit, arg) {
         	case MEASURE:
         		if (distanceToTravel == 0) {
         			set_front_led(1);
-        			chThdSleepMilliseconds(2000);
+//        			chThdSleepMilliseconds(2000);
         			//faire un nouveau mode pour faire uniquement la mesure ? :thinking
-        			for (int i=0; i<20; i++) {
+        			do {
         				measurement_average += VL53L0X_get_dist_mm();
-        			}
+        				counter += 1;
+        				chThdSleepMilliseconds(100);
+        			} while (counter < 20);
         			distanceToTravel = measurement_average/20; //VL53L0X_get_dist_mm(); //gets distance to object
+        			measurement_average = 0;
+        			counter = 0;
         			left_motor_pos_target = 72;//1295;
         			reset_motor_pos();
         			set_movingSpeed(SLOW_SPEED);
@@ -131,9 +137,15 @@ static THD_FUNCTION(CentralUnit, arg) {
 
         		if ((get_left_motor_pos() >= left_motor_pos_target) && (wallFound == false)) {
         			update_currentModeOfMove(STOP_MOVE);
-        			chThdSleepMilliseconds(2000);
+        			do {
+						measurement_average += VL53L0X_get_dist_mm();
+						counter += 1;
+        				chThdSleepMilliseconds(100);
+					} while (counter < 20);
         			wallFound = true;
-        			distanceToTravel = VL53L0X_get_dist_mm() - distanceToTravel - OBJECT_DIAMETER - WALL_CLEARANCE;
+        			distanceToTravel = (measurement_average/20) - distanceToTravel - OBJECT_DIAMETER - WALL_CLEARANCE;
+        			measurement_average = 0;
+					counter = 0;
         		} else if ((wallFound == true) && (wallMeasured == false)) {
         			set_front_led(0);
         			reset_motor_pos();
@@ -169,6 +181,9 @@ static THD_FUNCTION(CentralUnit, arg) {
         			//////////////////////////////////////////////////////////////////////// test_max_1205 Commented
 
         			//////////////////////////////////////////////////////////////////////// test_max_1205
+        			moving = false;
+        			left_motor_pos_target = 0;
+        			right_motor_pos_target = 0;
         			update_currentModeOfMove(STOP_MOVE);
         			currentMode = ROTATE_BEFORE_FOLLOW;
         			//////////////////////////////////////////////////////////////////////// test_max_1205
@@ -180,8 +195,9 @@ static THD_FUNCTION(CentralUnit, arg) {
         		if (!usingStepCounters) {
 					left_motor_pos_target = 308; // to do a 90 degrees right rotation
 					reset_motor_pos();
-					set_movingSpeed(SLOW_SPEED);
+					set_movingSpeed(DEFAULT_SPEED);
 					update_currentModeOfMove(SPIN_RIGHT);
+					usingStepCounters = true;
 				}
 				if ((get_left_motor_pos() >= left_motor_pos_target) && usingStepCounters) {
 					usingStepCounters = false;
