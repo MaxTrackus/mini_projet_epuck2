@@ -13,6 +13,12 @@
 #define MAX_SPIN_ANGLE		360
 #define MAX_MOTOR_SPEED					1100 // [steps/s]
 
+#define TRACK_WIDTH						51			// [mm]
+#define TWENTY_DEGREES					20 			// [degree]
+#define	DEG2RAD							(M_PI)/180
+#define NSTEP_ONE_TURN      			1000 // number of step for 1 turn of the motor
+#define WHEEL_PERIMETER     			130 // [mm]
+
 
 static bool enableCallsOfFunctionThatUseStepTracker = true;
 static move_mode currentModeOfMove = STOP_MOVE;
@@ -20,7 +26,10 @@ static move_mode currentModeOfMove = STOP_MOVE;
 static bool rotationMappingIsOn = false;
 static int rotationMappingValue = 0;
 
-static uint16_t movingSpeed = 0; // devrait être signed ?
+static uint16_t movingSpeed = 0; // devrait ?re signed ?
+static uint32_t	right_motor_pos_target = 0;
+static uint32_t	left_motor_pos_target = 0;
+static bool robotMoving = false; 
 
 //////////////////////////////////////////////////////////////////////// test_max_1205
 static int16_t leftMotorCorrectionSpeed = 0;
@@ -184,16 +193,37 @@ void rotate_right(int speed) {
 	right_motor_set_speed(-speed);
 }
 
-// void rotate_right_in_degrees(int speed, float degrees) {
+//degrees>0 -> rotate right; degrees<0 -> rotate left;
+//how to know when movement finished.. _
+void rotate_in_degrees(int speed, int degrees) {
+	if (!robotMoving) {
+		reset_motor_pos();
+        movingSpeed = motor_speed_protection(speed); //check with issue about moving speed uint...
+        if (degrees > 0) {
+        	left_motor_pos_target = (uint32_t)(((DEG2RAD) * degrees * TRACK_WIDTH * NSTEP_ONE_TURN)/(2 * WHEEL_PERIMETER));
+        	currentModeOfMove = SPIN_RIGHT;
+        } else {
+        	right_motor_pos_target = (uint32_t)(((DEG2RAD) * abs(degrees) * TRACK_WIDTH * NSTEP_ONE_TURN)/(2 * WHEEL_PERIMETER));
+        	currentModeOfMove = SPIN_LEFT;
+        }
+        robotMoving = true;
+	} else { 
+		if ((degrees > 0) && (get_left_motor_pos() >= left_motor_pos_target)) {
+			currentModeOfMove = STOP_MOVE;
+			reset_moving_static();
+		} else if ((degrees < 0) && (get_right_motor_pos() >= right_motor_pos_target)) {
+			currentModeOfMove = STOP_MOVE;
+			reset_moving_static();		
+		}
+	}
+}
 
-// //	float duration = abs(degrees) / MOTOR_STEP_TO_DEGREES;
-// //	float start_time = chVTGetSystemTime();
-// //	do {
-// //		rotate_right(speed);
-// //	} while (chVTGetSystemTime() < start_time + MS2ST(duration));
-// //
-// //	motor_stop();
-// }
+void reset_moving_static(void) {
+	movingSpeed = 0; // devrait ?re signed ?
+	right_motor_pos_target = 0;
+	left_motor_pos_target = 0;
+	robotMoving = false; 
+}
 
 void avoid_obstacles(int speed, int prox_detection_threshold) {
 
