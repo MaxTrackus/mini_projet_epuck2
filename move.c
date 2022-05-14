@@ -14,13 +14,13 @@
 #define MAX_MOTOR_SPEED		1100 // [steps/s]
 
 // global use
-static bool enableCallsOfFunctionThatUseStepTracker = true;
+//static bool enableCallsOfFunctionThatUseStepTracker = true;
 static move_mode currentModeOfMove = STOP_MOVE;
 static int movingSpeed = 0; // devrait être signed ?
 
-// rotation mapping
-static bool rotationMappingIsOn = false;
-static int rotationMappingValue = 0;
+//// rotation mapping
+//static bool rotationMappingIsOn = false;
+//static int rotationMappingValue = 0;
 
 // follow mode
 static int16_t leftMotorCorrectionSpeed = 0;
@@ -76,9 +76,9 @@ static THD_FUNCTION(StepTracker, arg) {
         	set_currentRegulatorMode(NOTHING);
         }
 
-        if(rotationMappingIsOn) {
-        	rotationMappingValue = left_motor_get_pos();
-        }
+//        if(rotationMappingIsOn) {
+//        	rotationMappingValue = left_motor_get_pos();
+//        }
 
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
@@ -90,21 +90,21 @@ void follow_left_wall_with_speed_correction(int16_t leftSpeedCorrection) {
 	leftMotorCorrectionSpeed = leftSpeedCorrection;
 }
 
-void set_rotationMappingIsOn(bool status) {
-	if(rotationMappingIsOn && !status) {
-		enableCallsOfFunctionThatUseStepTracker = true;
-		left_motor_set_pos(0);
-	}
-	if(!rotationMappingIsOn && status) {
-		enableCallsOfFunctionThatUseStepTracker = false;
-		left_motor_set_pos(0);
-	}
-	rotationMappingIsOn = status;
-}
+//void set_rotationMappingIsOn(bool status) {
+//	if(rotationMappingIsOn && !status) {
+//		enableCallsOfFunctionThatUseStepTracker = true;
+//		left_motor_set_pos(0);
+//	}
+//	if(!rotationMappingIsOn && status) {
+//		enableCallsOfFunctionThatUseStepTracker = false;
+//		left_motor_set_pos(0);
+//	}
+//	rotationMappingIsOn = status;
+//}
 
-int get_rotationMappingValue(void) {
-	return rotationMappingValue;
-}
+//int get_rotationMappingValue(void) {
+//	return rotationMappingValue;
+//}
 
 void set_movingSpeed(int speed) {
 	movingSpeed = motor_speed_protection(speed);
@@ -153,7 +153,7 @@ bool toggle_boolean(bool x) {
 void stopMove(void) {
 	left_motor_set_speed(0);
 	right_motor_set_speed(0);
-	enableCallsOfFunctionThatUseStepTracker = true;
+//	enableCallsOfFunctionThatUseStepTracker = true;
 	set_currentRegulatorMode(NOTHING);
 }
 

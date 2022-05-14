@@ -55,8 +55,8 @@ static bool optimizedExitOnLeft = true;
 
 static bool moving = false;
 
-//static uint32_t	right_motor_pos_target = 0;
-//static uint32_t	left_motor_pos_target = 0;
+static uint32_t	right_motor_pos_target = 0;
+static uint32_t	left_motor_pos_target = 0;
 
 static uint8_t lostLineCounter = 0;
 
@@ -315,12 +315,12 @@ static THD_FUNCTION(CentralUnit, arg) {
 		}
 		//////////////////////////////////////////////////////////////testing purposes
 
-//        //enable rotationMapping only in analyse and align modes
-//        if((currentMode == ANALYSE) || (currentMode == ALIGN)) {
-//        	set_rotationMappingIsOn(true);
-//        } else {
-//        	set_rotationMappingIsOn(false);
-//        }
+        //enable rotationMapping only in analyse and align modes
+        if((currentMode == ANALYSE) || (currentMode == ALIGN)) {
+        	set_rotationMappingIsOn(true);
+        } else {
+        	set_rotationMappingIsOn(false);
+        }
 
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
