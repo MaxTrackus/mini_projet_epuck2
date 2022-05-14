@@ -1,21 +1,20 @@
-// #include "ch.h" //usage ?
-// #include "hal.h" //usage ?
+#include "ch.h" //usage ?
+#include "hal.h" //usage ?
 // #include <chprintf.h> //usage ?
 // #include <usbcfg.h> //usage ?
 #include <sensors/proximity.h>
 
-#include <main.h>
 #include <proxi.h>
 
 #define NB_PROX_SENSORS		8
 
-static int prox_value[NB_PROX_SENSORS];
+static uint16_t prox_value[NB_PROX_SENSORS];
 
-bool* get_prox_activation_status(int prox_detection_threshold) {
+bool* get_prox_activation_status(uint16_t prox_detection_threshold) {
 
 	static bool prox_activation_status[NB_PROX_SENSORS];
 
-	for (int i = 0; i < NB_PROX_SENSORS; ++i) {
+	for (uint8_t i = 0; i < NB_PROX_SENSORS; ++i) {
 		if (prox_value[i] > prox_detection_threshold) {
 			prox_activation_status[i] = true;
 		} else {
@@ -25,7 +24,7 @@ bool* get_prox_activation_status(int prox_detection_threshold) {
 	return prox_activation_status;
 }
 
-int* get_prox_value(void) {
+uint16_t* get_prox_value(void) {
 	return prox_value;
 }
 
@@ -41,7 +40,7 @@ static THD_FUNCTION(ReadProx, arg) {
 
     	time = chVTGetSystemTime();
 
-    	for (int i = 0; i < NB_PROX_SENSORS; ++i) {
+    	for (uint8_t i = 0; i < NB_PROX_SENSORS; ++i) {
 			prox_value[i] = get_calibrated_prox(i);
 		}
 

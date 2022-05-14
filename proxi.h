@@ -11,10 +11,26 @@
 #define PROX_LEFT						5 // IR 6
 #define PROX_BACK_LEFT					4 // IR 5
 
-bool* get_prox_activation_status(int prox_detection_threshold);
+/**
+* @brief   Gives an information on whether the proximity sensors's value are above a certain threshold
+*
+* @param prox_detection_threshold			Activation threshold value (sensor's max value is 4096)
+* 
+* @return			Address of boolean buffer with activation status for the proximity sensors
+*/
+bool* get_prox_activation_status(uint16_t prox_detection_threshold);
 
-int* get_prox_value(void);
+/**
+* @brief   Returns address of buffer with the calibration value for every sensor
+* 
+* @return			Address of boolean buffer with activation status for the proximity sensors
+*/
+uint16_t* get_prox_value(void);
 
+/**
+* @brief   Init a thread which uses the proximity sensors to
+* continuoulsy store every sensor's value inside a buffer
+*/
 void read_prox_start(void);
 
 #endif /* PROXI_H */
