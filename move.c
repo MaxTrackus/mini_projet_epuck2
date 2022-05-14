@@ -16,7 +16,7 @@
 // global use
 static bool enableCallsOfFunctionThatUseStepTracker = true;
 static move_mode currentModeOfMove = STOP_MOVE;
-static uint16_t movingSpeed = 0; // devrait être signed ?
+static int movingSpeed = 0; // devrait être signed ?
 
 // rotation mapping
 static bool rotationMappingIsOn = false;

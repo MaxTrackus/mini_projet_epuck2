@@ -268,9 +268,9 @@ static THD_FUNCTION(CentralUnit, arg) {
 
         	case STRAIGHT_TRACKER_TEST:
         		if(!get_trackerIsUsed()) {
-					set_movingSpeed(DEFAULT_SPEED);
-					update_currentModeOfMove(MOVE_STRAIGHT);
-					trackStraightAdvance((int16_t)(70 + TRACKING_ERROR * 70));
+        			set_movingSpeed(-DEFAULT_SPEED);
+        			update_currentModeOfMove(MOVE_STRAIGHT);
+					trackStraightAdvance((int16_t)(-70 - TRACKING_ERROR * 70));
 				}
 				if(get_trackerIsUsed() && get_trackingFinished()) {
 					currentMode = STOP;
