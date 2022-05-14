@@ -50,23 +50,25 @@
 
 // follow mode
 static bool foundWall = false;
-static bool usingStepCounters = false;
+//static bool usingStepCounters = false;
 
 static volatile task_mode currentMode = STOP; // laisse à STOP stp.       MaxTrackus
-static volatile int distanceToTravel = 0;
-static volatile bool wallFound = false;
-static bool wallMeasured = false;
+//static volatile int distanceToTravel = 0;
+//static volatile bool wallFound = false;
+//static bool wallMeasured = false;
 static bool optimizedExitOnLeft = true;
 
-static bool moving = false;
+//static bool moving = false;
 
-static int32_t	right_motor_pos_target = 0;
-static int32_t	left_motor_pos_target = 0;
+//static int32_t	right_motor_pos_target = 0;
+//static int32_t	left_motor_pos_target = 0;
 
 static uint8_t lostLineCounter = 0;
 
-static uint16_t measurement_average = 0;
-static uint8_t counter = 0;
+//static uint16_t measurement_average = 0; // pas besoin?
+//static uint8_t counter = 0; // pas besoin?
+static uint16_t measuredValue = 0;
+static uint16_t distanceToObject = 0;
 
 static THD_WORKING_AREA(waCentralUnit, 1024);
 static THD_FUNCTION(CentralUnit, arg) {
@@ -75,7 +77,7 @@ static THD_FUNCTION(CentralUnit, arg) {
     (void)arg;
 
     systime_t time;
-    int32_t current_motor_pos;
+//    int32_t current_motor_pos;
     uint8_t prox_for_follow;
     uint8_t prox_for_exit;
 
@@ -86,7 +88,12 @@ static THD_FUNCTION(CentralUnit, arg) {
         currentMode == ANALYSE ? set_body_led(1) : set_body_led(0);
         currentMode == ALIGN ? set_led(LED1, 1) : set_led(LED1, 0);
         currentMode == PURSUIT ? set_led(LED3, 1) : set_led(LED3, 0);
-        currentMode == MEASURE ? set_led(LED5, 1) : set_led(LED5, 0);
+//        currentMode == MEASURE ? set_led(LED5, 1) : set_led(LED5, 0);
+        ///////////////////////////////////////////////////////////////////////////////////pas ouf
+        currentMode == MEASURE_TOF ? set_led(LED5, 1) : set_led(LED5, 0);
+        currentMode == MEASURE_SPIN_RIGHT ? set_led(LED5, 1) : set_led(LED5, 0);
+        currentMode == MEASURE_SPIN_LEFT ? set_led(LED5, 1) : set_led(LED5, 0);
+        ///////////////////////////////////////////////////////////////////////////////////pas ouf
         currentMode == PUSH ? set_led(LED7, 1) : set_led(LED7, 0);
         currentMode == ROTATE_BEFORE_FOLLOW ? set_led(LED1, 1) : set_led(LED1, 0);
         currentMode == FOLLOW ? set_led(LED3, 1) : set_led(LED3, 0);
@@ -106,6 +113,7 @@ static THD_FUNCTION(CentralUnit, arg) {
         		break;
 
         	case ANALYSE:
+        		set_rotationMappingIsOn(true);
         		set_movingSpeed(DEFAULT_SPEED);
         		update_currentModeOfMove(SPIN_RIGHT);
         		break;
@@ -128,112 +136,187 @@ static THD_FUNCTION(CentralUnit, arg) {
     			}
     			if(get_lineWidth() > (uint16_t)(400)) {
     				update_currentModeOfMove(STOP_MOVE);
-    				currentMode = MEASURE;
+    				currentMode = MEASURE_TOF;
     			}
         		break;
 
-        	case MEASURE:
-        		if (distanceToTravel == 0) {
-        			set_front_led(1);
-        			//faire un nouveau mode pour faire uniquement la mesure ? :thinking
-        			do {
-        				measurement_average += VL53L0X_get_dist_mm();
-        				counter += 1;
-        				chThdSleepMilliseconds(100);
-        			} while (counter < 20);
-        			distanceToTravel = measurement_average/20; //VL53L0X_get_dist_mm(); //gets distance to object
-        			measurement_average = 0;
-        			counter = 0;
-        			left_motor_pos_target = 72;
-        			reset_motor_pos();
-        			set_movingSpeed(SLOW_SPEED);
-        			update_currentModeOfMove(SPIN_RIGHT);
+        	// this mode is made two times
+        	case MEASURE_TOF:;
+        		uint8_t counter = 0;
+        		do {
+        			measuredValue += VL53L0X_get_dist_mm();
+					counter += 1;
+					chThdSleepMilliseconds(100);
+				} while (counter < 20);
+        		measuredValue = measuredValue/20; //VL53L0X_get_dist_mm(); //gets distance to object
+        		if(distanceToObject == 0) {
+        			currentMode = MEASURE_SPIN_RIGHT;
         		}
-
-        		if ((get_left_motor_pos() >= left_motor_pos_target) && (wallFound == false)) {
-        			update_currentModeOfMove(STOP_MOVE);
-        			do {
-						measurement_average += VL53L0X_get_dist_mm();
-						counter += 1;
-        				chThdSleepMilliseconds(100);
-					} while (counter < 20);
-        			wallFound = true;
-        			distanceToTravel = (measurement_average/20) - distanceToTravel - OBJECT_DIAMETER/* - WALL_CLEARANCE*/;
-        			measurement_average = 0;
-					counter = 0;
-        		} else if ((wallFound == true) && (wallMeasured == false)) {
-        			set_front_led(0);
-        			reset_motor_pos();
-        			right_motor_pos_target = 72;
-        			wallMeasured = true;
-					set_movingSpeed(SLOW_SPEED);
-					update_currentModeOfMove(SPIN_LEFT);
-        		}
-
-        		if ((get_right_motor_pos() >= right_motor_pos_target) && (wallMeasured == true)) {
-        			update_currentModeOfMove(STOP);
-        			left_motor_pos_target = 0;
-        			right_motor_pos_target = 0;
-        			wallFound = false;
-        			wallMeasured = false;
-        			currentMode = PUSH;
+        		else {
+        			currentMode = MEASURE_SPIN_LEFT;
         		}
         		break;
 
-        	case PUSH:
-        		if ((distanceToTravel != 0) && (moving == false)) {
-        			set_straight_move_in_mm(distanceToTravel);
-       				distanceToTravel = 0;
+        	case MEASURE_SPIN_RIGHT:
+        		///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
+        		if(!get_trackerIsUsed()) {
+					set_movingSpeed(DEFAULT_SPEED);
+					update_currentModeOfMove(SPIN_RIGHT);
+					trackRotationOfDegree((int16_t)(20 + TRACKING_ERROR * 20));
+				}
+				if(get_trackerIsUsed() && get_trackingFinished()) {
+					distanceToObject = measuredValue;
+					currentMode = MEASURE_TOF;
+				}
+				///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
+				break;
 
-        			moving = true;
-        			reset_motor_pos();
-        			set_movingSpeed(DEFAULT_SPEED);
-        			update_currentModeOfMove(MOVE_STRAIGHT);
-        		}
-        		current_motor_pos = get_right_motor_pos();
-        		if ((current_motor_pos >= right_motor_pos_target)) {
-        			moving = false;
-        			left_motor_pos_target = 0;
-        			right_motor_pos_target = 0;
-        			update_currentModeOfMove(STOP_MOVE);
-        			currentMode = ROTATE_BEFORE_FOLLOW;
-        		}
+        	case MEASURE_SPIN_LEFT:
+        		///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
+        		if(!get_trackerIsUsed()) {
+					set_movingSpeed(DEFAULT_SPEED);
+					update_currentModeOfMove(SPIN_LEFT);
+					trackRotationOfDegree((int16_t)(-20 - TRACKING_ERROR * 20));
+				}
+				if(get_trackerIsUsed() && get_trackingFinished()) {
+					distanceToObject = measuredValue;
+					currentMode = PUSH;
+				}
+				///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
+        		break;
+//        	case MEASURE:
+//        		if (distanceToTravel == 0) {
+//        			set_front_led(1);
+//        			//faire un nouveau mode pour faire uniquement la mesure ? :thinking
+//        			do {
+//        				measurement_average += VL53L0X_get_dist_mm();
+//        				counter += 1;
+//        				chThdSleepMilliseconds(100);
+//        			} while (counter < 20);
+//        			distanceToTravel = measurement_average/20; //VL53L0X_get_dist_mm(); //gets distance to object
+//        			measurement_average = 0;
+//        			counter = 0;
+//        			left_motor_pos_target = 72;
+//        			reset_motor_pos();
+//        			set_movingSpeed(SLOW_SPEED);
+//        			update_currentModeOfMove(SPIN_RIGHT);
+//        		}
+//
+//        		if ((get_left_motor_pos() >= left_motor_pos_target) && (wallFound == false)) {
+//        			update_currentModeOfMove(STOP_MOVE);
+//        			do {
+//						measurement_average += VL53L0X_get_dist_mm();
+//						counter += 1;
+//        				chThdSleepMilliseconds(100);
+//					} while (counter < 20);
+//        			wallFound = true;
+//        			distanceToTravel = (measurement_average/20) - distanceToTravel - OBJECT_DIAMETER/* - WALL_CLEARANCE*/;
+//        			measurement_average = 0;
+//					counter = 0;
+//        		} else if ((wallFound == true) && (wallMeasured == false)) {
+//        			set_front_led(0);
+//        			reset_motor_pos();
+//        			right_motor_pos_target = 72;
+//        			wallMeasured = true;
+//					set_movingSpeed(SLOW_SPEED);
+//					update_currentModeOfMove(SPIN_LEFT);
+//        		}
+//
+//        		if ((get_right_motor_pos() >= right_motor_pos_target) && (wallMeasured == true)) {
+//        			update_currentModeOfMove(STOP);
+//        			left_motor_pos_target = 0;
+//        			right_motor_pos_target = 0;
+//        			wallFound = false;
+//        			wallMeasured = false;
+//        			currentMode = PUSH;
+//        		}
+//        		break;
+
+        	case PUSH:;
+        		//measuredVale is the distance to the wall
+        		int distance_travel = (measuredValue/20) - distanceToObject - OBJECT_DIAMETER;
+        		///////////////////////////////////////////////////////////////////////////////////// advance_mm function
+        		if(!get_trackerIsUsed()) {
+					set_movingSpeed(DEFAULT_SPEED);
+					update_currentModeOfMove(MOVE_STRAIGHT);
+					trackStraightAdvance((int16_t)(distance_travel - TRACKING_ERROR * distance_travel));
+				}
+				if(get_trackerIsUsed() && get_trackingFinished()) {
+					currentMode = ROTATE_BEFORE_FOLLOW;
+				}
+				///////////////////////////////////////////////////////////////////////////////////// advance_mm function
+//        		if ((distanceToTravel != 0) && (moving == false)) {
+//        			set_straight_move_in_mm(distanceToTravel);
+//       				distanceToTravel = 0;
+//
+//        			moving = true;
+//        			reset_motor_pos();
+//        			set_movingSpeed(DEFAULT_SPEED);
+//        			update_currentModeOfMove(MOVE_STRAIGHT);
+//        		}
+//        		current_motor_pos = get_right_motor_pos();
+//        		if ((current_motor_pos >= right_motor_pos_target)) {
+//        			moving = false;
+//        			left_motor_pos_target = 0;
+//        			right_motor_pos_target = 0;
+//        			update_currentModeOfMove(STOP_MOVE);
+//        			currentMode = ROTATE_BEFORE_FOLLOW;
+//        		}
         		break;
 
         	case ROTATE_BEFORE_FOLLOW:
         		if(optimizedExitOnLeft) {
-        			/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle begin
-        			if (!usingStepCounters) {
-        				right_motor_pos_target = 308; // to do a 90 degrees right rotation
-						reset_motor_pos();
+        			///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
+        			if(!get_trackerIsUsed()) {
 						set_movingSpeed(DEFAULT_SPEED);
 						update_currentModeOfMove(SPIN_LEFT);
-						usingStepCounters = true;
+						trackRotationOfDegree((int16_t)(-90 - TRACKING_ERROR * 90));
 					}
-					if ((get_right_motor_pos() >= right_motor_pos_target) && usingStepCounters) {
-						usingStepCounters = false;
-						reset_motor_pos();
+					if(get_trackerIsUsed() && get_trackingFinished()) {
 						currentMode = FOLLOW;
-						// currentMode = STOP;
 					}
-					/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle end
+					///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
+//        			/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle begin
+//        			if (!usingStepCounters) {
+//        				right_motor_pos_target = 308; // to do a 90 degrees right rotation
+//						reset_motor_pos();
+//						set_movingSpeed(DEFAULT_SPEED);
+//						update_currentModeOfMove(SPIN_LEFT);
+//						usingStepCounters = true;
+//					}
+//					if ((get_right_motor_pos() >= right_motor_pos_target) && usingStepCounters) {
+//						usingStepCounters = false;
+//						reset_motor_pos();
+//						currentMode = FOLLOW;
+//						// currentMode = STOP;
+//					}
+//					/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle end
         		}
         		else {
-        			/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle begin
-        			if (!usingStepCounters) {
-						left_motor_pos_target = 308; // to do a 90 degrees right rotation
-						reset_motor_pos();
+        			///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
+					if(!get_trackerIsUsed()) {
 						set_movingSpeed(DEFAULT_SPEED);
 						update_currentModeOfMove(SPIN_RIGHT);
-						usingStepCounters = true;
+						trackRotationOfDegree((int16_t)(90 + TRACKING_ERROR * 90));
 					}
-					if ((get_left_motor_pos() >= left_motor_pos_target) && usingStepCounters) {
-						usingStepCounters = false;
-						reset_motor_pos();
+					if(get_trackerIsUsed() && get_trackingFinished()) {
 						currentMode = FOLLOW;
-// 						currentMode = STOP;
 					}
-					/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle end
+					///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
+//        			/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle begin
+//        			if (!usingStepCounters) {
+//						left_motor_pos_target = 308; // to do a 90 degrees right rotation
+//						reset_motor_pos();
+//						set_movingSpeed(DEFAULT_SPEED);
+//						update_currentModeOfMove(SPIN_RIGHT);
+//						usingStepCounters = true;
+//					}
+//					if ((get_left_motor_pos() >= left_motor_pos_target) && usingStepCounters) {
+//						usingStepCounters = false;
+//						reset_motor_pos();
+//						currentMode = FOLLOW;
+//					}
+//					/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle end
         		}
         		break;
 
@@ -256,8 +339,8 @@ static THD_FUNCTION(CentralUnit, arg) {
         			foundWall = true;
         		}
 
-        		(optimizedExitOnLeft) ? follow_left_wall_with_speed_correction(-speedCorrection) : follow_left_wall_with_speed_correction(speedCorrection);
-//        		follow_left_wall_with_speed_correction(speedCorrection);
+//        		(optimizedExitOnLeft) ? follow_left_wall_with_speed_correction(-speedCorrection) : follow_left_wall_with_speed_correction(speedCorrection);
+        		follow_left_wall_with_speed_correction(speedCorrection);
 
         		bool *prox_status_table = get_prox_activation_status(PROX_DETECTION_THRESHOLD);
 				if ((prox_status_table[prox_for_follow] == false) && foundWall) {
@@ -272,84 +355,125 @@ static THD_FUNCTION(CentralUnit, arg) {
 
         	case EXIT:
         		if(!optimizedExitOnLeft) {
-        			/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle begin
-        			if (!usingStepCounters) {
-        				right_motor_pos_target = degrees_to_motor_step(60); // to do a 90 degrees right rotation
-						reset_motor_pos();
+        			///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
+        			if(!get_trackerIsUsed()) {
 						set_movingSpeed(DEFAULT_SPEED);
 						update_currentModeOfMove(SPIN_LEFT);
-						usingStepCounters = true;
+						trackRotationOfDegree((int16_t)(-60 - TRACKING_ERROR * 60));
 					}
-					if ((get_right_motor_pos() >= right_motor_pos_target) && usingStepCounters) {
-						usingStepCounters = false;
-						reset_motor_pos();
+					if(get_trackerIsUsed() && get_trackingFinished()) {
 						currentMode = PUSH_OUT;
 					}
-					/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle end
+        			///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
+//        			/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle begin
+//        			if (!usingStepCounters) {
+//        				right_motor_pos_target = degrees_to_motor_step(60); // to do a 90 degrees right rotation
+//						reset_motor_pos();
+//						set_movingSpeed(DEFAULT_SPEED);
+//						update_currentModeOfMove(SPIN_LEFT);
+//						usingStepCounters = true;
+//					}
+//					if ((get_right_motor_pos() >= right_motor_pos_target) && usingStepCounters) {
+//						usingStepCounters = false;
+//						reset_motor_pos();
+//						currentMode = PUSH_OUT;
+//					}
+//					/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle end
         		}
         		else {
-        			/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle begin
-        			if (!usingStepCounters) {
-						left_motor_pos_target = degrees_to_motor_step(60); // to do a 90 degrees right rotation
-						reset_motor_pos();
+        			///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
+					if(!get_trackerIsUsed()) {
 						set_movingSpeed(DEFAULT_SPEED);
 						update_currentModeOfMove(SPIN_RIGHT);
-						usingStepCounters = true;
+						trackRotationOfDegree((int16_t)(60 + TRACKING_ERROR * 60));
 					}
-					if ((get_left_motor_pos() >= left_motor_pos_target) && usingStepCounters) {
-						usingStepCounters = false;
-						reset_motor_pos();
+					if(get_trackerIsUsed() && get_trackingFinished()) {
 						currentMode = PUSH_OUT;
 					}
-					/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle end
+					///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
+//        			/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle begin
+//        			if (!usingStepCounters) {
+//						left_motor_pos_target = degrees_to_motor_step(60); // to do a 90 degrees right rotation
+//						reset_motor_pos();
+//						set_movingSpeed(DEFAULT_SPEED);
+//						update_currentModeOfMove(SPIN_RIGHT);
+//						usingStepCounters = true;
+//					}
+//					if ((get_left_motor_pos() >= left_motor_pos_target) && usingStepCounters) {
+//						usingStepCounters = false;
+//						reset_motor_pos();
+//						currentMode = PUSH_OUT;
+//					}
+//					/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle end
         		}
         		break;
 
         	case PUSH_OUT:
-        		if (distanceToTravel == 0) {
-        			distanceToTravel = EXIT_DISTANCE;
-        		}
-        		if ((distanceToTravel != 0) && (moving == false)) {
-        			set_straight_move_in_mm(distanceToTravel);
-        			moving = true;
-        			reset_motor_pos();
-        			set_movingSpeed(DEFAULT_SPEED);
-        			update_currentModeOfMove(MOVE_STRAIGHT);
-        		}
-        		current_motor_pos = get_right_motor_pos();
-        		if ((current_motor_pos > right_motor_pos_target)) {
-        			moving = false;
-        			left_motor_pos_target = 0;
-        			right_motor_pos_target = 0;
-        			update_currentModeOfMove(STOP_MOVE);
-        			reset_motor_pos();
-        			distanceToTravel = 0;
-        			currentMode = RECENTER;
-        		}
+        		///////////////////////////////////////////////////////////////////////////////////// advance_mm function
+        		if(!get_trackerIsUsed()) {
+					set_movingSpeed(DEFAULT_SPEED);
+					update_currentModeOfMove(MOVE_STRAIGHT);
+					trackStraightAdvance((int16_t)(EXIT_DISTANCE + TRACKING_ERROR * EXIT_DISTANCE));
+				}
+				if(get_trackerIsUsed() && get_trackingFinished()) {
+					currentMode = RECENTER;
+				}
+        		///////////////////////////////////////////////////////////////////////////////////// advance_mm function
+//        		if (distanceToTravel == 0) {
+//        			distanceToTravel = EXIT_DISTANCE;
+//        		}
+//        		if ((distanceToTravel != 0) && (moving == false)) {
+//        			set_straight_move_in_mm(distanceToTravel);
+//        			moving = true;
+//        			reset_motor_pos();
+//        			set_movingSpeed(DEFAULT_SPEED);
+//        			update_currentModeOfMove(MOVE_STRAIGHT);
+//        		}
+//        		current_motor_pos = get_right_motor_pos();
+//        		if ((current_motor_pos > right_motor_pos_target)) {
+//        			moving = false;
+//        			left_motor_pos_target = 0;
+//        			right_motor_pos_target = 0;
+//        			update_currentModeOfMove(STOP_MOVE);
+//        			reset_motor_pos();
+//        			distanceToTravel = 0;
+//        			currentMode = RECENTER;
+//        		}
         		break;
 
         	case RECENTER:
-        		if (distanceToTravel == 0) {
-        			distanceToTravel = -(ARENA_RADIUS+EXIT_DISTANCE);
-        		}
-        		if ((distanceToTravel != 0) && (moving == false)) {
-        			set_straight_move_in_mm(distanceToTravel);
-        			moving = true;
-        			reset_motor_pos();
-        			set_movingSpeed(-FAST_SPEED);
-        			update_currentModeOfMove(MOVE_STRAIGHT);
-        		}
-        		current_motor_pos = get_right_motor_pos();
-        		if ((current_motor_pos < right_motor_pos_target)) {
-        			moving = false;
-        			left_motor_pos_target = 0;
-        			right_motor_pos_target = 0;
-        			update_currentModeOfMove(STOP_MOVE);
-        			distanceToTravel = 0;
-        			currentMode = ANALYSE;
-        		}
+        		///////////////////////////////////////////////////////////////////////////////////// advance_mm function
+				if(!get_trackerIsUsed()) {
+					set_movingSpeed(-DEFAULT_SPEED);
+					update_currentModeOfMove(MOVE_STRAIGHT);
+					trackStraightAdvance((int16_t)(-(ARENA_RADIUS+EXIT_DISTANCE) - TRACKING_ERROR * (ARENA_RADIUS+EXIT_DISTANCE)));
+				}
+				if(get_trackerIsUsed() && get_trackingFinished()) {
+					currentMode = ANALYSE;
+				}
+//				///////////////////////////////////////////////////////////////////////////////////// advance_mm function
+//        		if (distanceToTravel == 0) {
+//        			distanceToTravel = -(ARENA_RADIUS+EXIT_DISTANCE);
+//        		}
+//        		if ((distanceToTravel != 0) && (moving == false)) {
+//        			set_straight_move_in_mm(distanceToTravel);
+//        			moving = true;
+//        			reset_motor_pos();
+//        			set_movingSpeed(-FAST_SPEED);
+//        			update_currentModeOfMove(MOVE_STRAIGHT);
+//        		}
+//        		current_motor_pos = get_right_motor_pos();
+//        		if ((current_motor_pos < right_motor_pos_target)) {
+//        			moving = false;
+//        			left_motor_pos_target = 0;
+//        			right_motor_pos_target = 0;
+//        			update_currentModeOfMove(STOP_MOVE);
+//        			distanceToTravel = 0;
+//        			currentMode = ANALYSE;
+//        		}
         		break;
 
+        		// if spin left, angle degree must be negative. if spin right angle degree must be positiv
         	case ROTATE_TRACKER_TEST:
 				if(!get_trackerIsUsed()) {
 					set_movingSpeed(DEFAULT_SPEED);
@@ -361,6 +485,7 @@ static THD_FUNCTION(CentralUnit, arg) {
 				}
 				break;
 
+				// if move forward, speed and mm must be positives, if move backwards speed and distance must be negatives
 			case STRAIGHT_TRACKER_TEST:
 				if(!get_trackerIsUsed()) {
 					set_movingSpeed(-DEFAULT_SPEED);
@@ -388,45 +513,46 @@ static THD_FUNCTION(CentralUnit, arg) {
         		break;
         }
 
-		//from idle to analyseMode
-		if((get_selector() == 1) && !(currentMode == ALIGN) && !(currentMode == PURSUIT)) {
-			currentMode = ANALYSE;
-		}
-		//from analyseMode to alignementMode
-		if((currentMode == ANALYSE) && get_staticFoundLine()) {
-			currentMode = ALIGN;
-		}
-		//from alignementMode to analyseMode
-		if((currentMode == ALIGN) && (!(get_staticFoundLine()))) {
-			currentMode = ANALYSE;
-		}
-		//from alignementMode to pursuit
-		if((currentMode == ALIGN) && (get_regulationCompleted())) {
-			// determine if it is shorter to follow the wall counterclockwise (true) or clockwise (false)
-			if(get_rotationMappingValue() >= THRESHOLD_STEPS_FOR_OPTIMIZED_EXIT) { // must be calibrated, maybe 700 is not the good parameter. must test with the rotation of a certain angle when avalaible
-				optimizedExitOnLeft = false;
-			} else {
-				optimizedExitOnLeft = true;
-			}
-			currentMode = PURSUIT;
-		}
+//		//from idle to analyseMode
+//		if((get_selector() == 1) && !(currentMode == ALIGN) && !(currentMode == PURSUIT)) {
+//			currentMode = ANALYSE;
+//		}
+//		//from analyseMode to alignementMode
+//		if((currentMode == ANALYSE) && get_staticFoundLine()) {
+//			currentMode = ALIGN;
+//		}
+//		//from alignementMode to analyseMode
+//		if((currentMode == ALIGN) && (!(get_staticFoundLine()))) {
+//        	set_rotationMappingIsOn(true);
+//			currentMode = ANALYSE;
+//		}
+//		//from alignementMode to pursuit
+//		if((currentMode == ALIGN) && (get_regulationCompleted())) {
+//			// determine if it is shorter to follow the wall counterclockwise (true) or clockwise (false)
+//			if(get_rotationMappingValue() >= THRESHOLD_STEPS_FOR_OPTIMIZED_EXIT) { // must be calibrated, maybe 700 is not the good parameter. must test with the rotation of a certain angle when avalaible
+//				optimizedExitOnLeft = false;
+//			} else {
+//				optimizedExitOnLeft = true;
+//			}
+//			currentMode = PURSUIT;
+//		}
 		//stop and idle
 		if((get_selector() == 15)) {
 			currentMode = STOP;
 		}
 
 		//////////////////////////////////////////////////////////////testing purposes
-//		if(get_selector() == 1) {
-//			currentMode = STRAIGHT_TRACKER_TEST;
-//		}
+		if(get_selector() == 1) {
+			currentMode = MEASURE_SPIN_RIGHT;
+		}
 		//////////////////////////////////////////////////////////////testing purposes
 
         //enable rotationMapping only in analyse and align modes
-        if((currentMode == ANALYSE) || (currentMode == ALIGN)) {
-        	set_rotationMappingIsOn(true);
-        } else {
-        	set_rotationMappingIsOn(false);
-        }
+//        if((currentMode == ANALYSE) || (currentMode == ALIGN)) {
+//        	set_rotationMappingIsOn(true);
+//        } else {
+//        	set_rotationMappingIsOn(false);
+//        }
 
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
