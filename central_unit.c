@@ -15,15 +15,20 @@
 #include <pi_regulator.h>
 #include <proxi.h>
 
-#define DEFAULT_SPEED					200 // [steps/s]
-#define SLOW_SPEED						50 	// [steps/s]
-#define	OBJECT_DIAMETER					30 	// [mm]	
-#define ERROR_MARGIN					75 	// [mm]
-#define WALL_CLEARANCE					10 	// [mm]
-#define SEC2MSEC						1000  //1000
-#define MAX_MOTOR_SPEED					1100 // [steps/s]
-#define NSTEP_ONE_TURN      			1000 // number of step for 1 turn of the motor
-#define WHEEL_PERIMETER     			130 // [mm]
+#define DEFAULT_SPEED					200 	// [steps/s]
+#define SLOW_SPEED						50 		// [steps/s]
+#define FAST_SPEED						400 	// [steps/s]
+
+#define	OBJECT_DIAMETER					30 		// [mm]	
+#define ERROR_MARGIN					75 		// [mm]
+#define WALL_CLEARANCE					10 		// [mm]
+#define SEC2MSEC						1000
+#define MAX_MOTOR_SPEED					1100	// [steps/s]
+#define NSTEP_ONE_TURN      			1000	// number of step for 1 turn of the motor
+#define WHEEL_PERIMETER     			130		// [mm]
+
+#define ARENA_RADIUS					250 	// [mm]
+#define EXIT_DISTANCE					100		// [mm]
 
 #define QUARTER_TURN					90
 #define MOTOR_STEP_TO_DEGREES			360 //find other name maybe
@@ -43,16 +48,16 @@
 static bool foundWall = false;
 static bool usingStepCounters = false;
 
-static volatile task_mode currentMode = STOP;
-static volatile uint16_t distanceToTravel = 0;
+static volatile task_mode currentMode = IDLE;
+static volatile int distanceToTravel = 0;
 static volatile bool wallFound = false;
 static bool wallMeasured = false;
 static bool optimizedExitOnLeft = true;
 
 static bool moving = false;
 
-static uint32_t	right_motor_pos_target = 0;
-static uint32_t	left_motor_pos_target = 0;
+static int32_t	right_motor_pos_target = 0;
+static int32_t	left_motor_pos_target = 0;
 
 static uint8_t lostLineCounter = 0;
 
@@ -66,7 +71,7 @@ static THD_FUNCTION(CentralUnit, arg) {
     (void)arg;
 
     volatile systime_t time;
-    volatile uint32_t current_motor_pos;
+    volatile int32_t current_motor_pos;
 
     while(1){
         time = chVTGetSystemTime();
@@ -80,6 +85,8 @@ static THD_FUNCTION(CentralUnit, arg) {
         currentMode == ROTATE_BEFORE_FOLLOW ? set_led(LED1, 1) : set_led(LED1, 0);
         currentMode == FOLLOW ? set_led(LED3, 1) : set_led(LED3, 0);
 		currentMode == EXIT ? set_led(LED5, 1) : set_led(LED5, 0);
+		currentMode == PUSH_OUT ? set_led(LED7, 1) : set_led(LED7, 0);
+		currentMode == RECENTER ? set_led(LED1, 1) : set_led(LED1, 0);
 
         switch(currentMode) {
         	case IDLE:
@@ -253,8 +260,9 @@ static THD_FUNCTION(CentralUnit, arg) {
         		break;
 
         	case FOLLOW: ;
-        		set_movingSpeed(400);
+        		set_movingSpeed(FAST_SPEED);
         		int *prox_values = get_prox_value();
+        		
         		int16_t speedCorrection = (int16_t)(SPEED_CORRECTION_SENSIBILITY_OVER_PROXI * prox_values[PROX_FRONT_LEFT_49]) - (GOAL_PROXI_VALUE * SPEED_CORRECTION_SENSIBILITY_OVER_PROXI);
         		if((prox_values[PROX_FRONT_LEFT_49] <= GOAL_PROXI_VALUE)) {
         			speedCorrection = 0;
@@ -278,7 +286,7 @@ static THD_FUNCTION(CentralUnit, arg) {
         		if(!optimizedExitOnLeft) {
         			/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle begin
         			if (!usingStepCounters) {
-        				right_motor_pos_target = degrees_to_motor_step(90); // to do a 90 degrees right rotation
+        				right_motor_pos_target = degrees_to_motor_step(60); // to do a 90 degrees right rotation
 						reset_motor_pos();
 						set_movingSpeed(DEFAULT_SPEED);
 						update_currentModeOfMove(SPIN_LEFT);
@@ -287,14 +295,14 @@ static THD_FUNCTION(CentralUnit, arg) {
 					if ((get_right_motor_pos() >= right_motor_pos_target) && usingStepCounters) {
 						usingStepCounters = false;
 						reset_motor_pos();
-						currentMode = STOP;
+						currentMode = PUSH_OUT;
 					}
 					/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle end
         		}
         		else {
         			/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle begin
         			if (!usingStepCounters) {
-						left_motor_pos_target = degrees_to_motor_step(90); // to do a 90 degrees right rotation
+						left_motor_pos_target = degrees_to_motor_step(60); // to do a 90 degrees right rotation
 						reset_motor_pos();
 						set_movingSpeed(DEFAULT_SPEED);
 						update_currentModeOfMove(SPIN_RIGHT);
@@ -303,51 +311,54 @@ static THD_FUNCTION(CentralUnit, arg) {
 					if ((get_left_motor_pos() >= left_motor_pos_target) && usingStepCounters) {
 						usingStepCounters = false;
 						reset_motor_pos();
-						currentMode = STOP;
+						currentMode = PUSH_OUT;
 					}
 					/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle end
         		}
         		break;
 
         	case PUSH_OUT:
+        		if (distanceToTravel == 0) {
+        			distanceToTravel = EXIT_DISTANCE;
+        		}
         		if ((distanceToTravel != 0) && (moving == false)) {
         			set_straight_move_in_mm(distanceToTravel);
         			moving = true;
         			reset_motor_pos();
         			set_movingSpeed(DEFAULT_SPEED);
         			update_currentModeOfMove(MOVE_STRAIGHT);
-        		} else {
-        			distanceToTravel = 100;
-        		}
+        		} 
         		current_motor_pos = get_right_motor_pos();
-        		if ((current_motor_pos >= right_motor_pos_target)) {
+        		if ((current_motor_pos > right_motor_pos_target)) {
         			moving = false;
         			left_motor_pos_target = 0;
         			right_motor_pos_target = 0;
         			update_currentModeOfMove(STOP_MOVE);
+        			reset_motor_pos();
         			distanceToTravel = 0;
         			currentMode = RECENTER;
         		}
         		break;
 
         	case RECENTER:
+        		if (distanceToTravel == 0) {
+        			distanceToTravel = -(ARENA_RADIUS+EXIT_DISTANCE);
+        		}
         		if ((distanceToTravel != 0) && (moving == false)) {
         			set_straight_move_in_mm(distanceToTravel);
         			moving = true;
         			reset_motor_pos();
-        			set_movingSpeed(DEFAULT_SPEED);
+        			set_movingSpeed(-DEFAULT_SPEED);
         			update_currentModeOfMove(MOVE_STRAIGHT);
-        		} else {
-        			distanceToTravel = 350;
         		}
         		current_motor_pos = get_right_motor_pos();
-        		if ((current_motor_pos >= right_motor_pos_target)) {
+        		if ((current_motor_pos < right_motor_pos_target)) {
         			moving = false;
         			left_motor_pos_target = 0;
         			right_motor_pos_target = 0;
         			update_currentModeOfMove(STOP_MOVE);
         			distanceToTravel = 0;
-        			currentMode = MEASURE;
+        			currentMode = ANALYSE;
         		}
         		break;
 
@@ -435,7 +446,7 @@ void central_unit_start(void){
 	chThdCreateStatic(waCentralUnit, sizeof(waCentralUnit), NORMALPRIO, CentralUnit, NULL);
 }
 
-void set_straight_move_in_mm(uint32_t distance_in_mm) {
+void set_straight_move_in_mm(int distance_in_mm) {
 	right_motor_pos_target = (distance_in_mm*NSTEP_ONE_TURN)/(WHEEL_PERIMETER);
 	left_motor_pos_target = (distance_in_mm*NSTEP_ONE_TURN)/(WHEEL_PERIMETER);
 }

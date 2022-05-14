@@ -16,7 +16,7 @@
 // global use
 static bool enableCallsOfFunctionThatUseStepTracker = true;
 static move_mode currentModeOfMove = STOP_MOVE;
-static uint16_t movingSpeed = 0; // devrait être signed ?
+static int movingSpeed = 0; // devrait ?re signed ?
 
 // rotation mapping
 static bool rotationMappingIsOn = false;
@@ -115,11 +115,11 @@ void reset_motor_pos(void) {
 	right_motor_set_pos(0);
 }
 
-uint32_t get_right_motor_pos(void) {
+int32_t get_right_motor_pos(void) {
 	return right_motor_get_pos();
 }
 
-uint32_t get_left_motor_pos(void) {
+int32_t get_left_motor_pos(void) {
 	return left_motor_get_pos();
 }
 

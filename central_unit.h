@@ -22,7 +22,7 @@ typedef enum {
 void central_unit_start(void);
 
 void set_mode_with_selector(void);
-void set_straight_move_in_mm(uint32_t distance_in_mm);
+void set_straight_move_in_mm(int distance_in_mm);
 
 
 uint32_t degrees_to_motor_step(uint16_t degrees);
