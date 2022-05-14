@@ -14,6 +14,7 @@
 #include <move.h>
 #include <pi_regulator.h>
 #include <proxi.h>
+#include <move_tracker.h>
 
 #define DEFAULT_SPEED					200 // [steps/s]
 #define SLOW_SPEED						50 	// [steps/s]
@@ -39,6 +40,9 @@
 #define THRESHOLD_ANGLE_FOR_OPTIMIZED_EXIT			180 // [deg]
 #define THRESHOLD_STEPS_FOR_OPTIMIZED_EXIT			620 // [steps]       (uint16_t)(THRESHOLD_ANGLE_FOR_OPTIMIZED_EXIT * DEG2RAD * TRACK_WIDTH * NSTEP_ONE_TURN) / (2*WHEEL_PERIMETER)   ?
 
+// move_tracker
+#define TRACKING_ERROR 					0.05
+
 // follow mode
 static bool foundWall = false;
 static bool usingStepCounters = false;
@@ -51,8 +55,8 @@ static bool optimizedExitOnLeft = true;
 
 static bool moving = false;
 
-static uint32_t	right_motor_pos_target = 0;
-static uint32_t	left_motor_pos_target = 0;
+//static uint32_t	right_motor_pos_target = 0;
+//static uint32_t	left_motor_pos_target = 0;
 
 static uint8_t lostLineCounter = 0;
 
@@ -88,195 +92,178 @@ static THD_FUNCTION(CentralUnit, arg) {
         		set_movingSpeed(DEFAULT_SPEED);
         		update_currentModeOfMove(STOP_MOVE);
         		optimizedExitOnLeft = true;
+        		stop_tracker();
         		break;
 
-        	case ANALYSE:
-        		set_movingSpeed(DEFAULT_SPEED);
-        		update_currentModeOfMove(SPIN_RIGHT);
-        		break;
-
-        	case ALIGN:
-        		set_movingSpeed(DEFAULT_SPEED);
-        		update_currentModeOfMove(SPIN_ALIGNEMENT);
-        		break;
-
-        	case PURSUIT:
-        		set_movingSpeed(DEFAULT_SPEED);
-        		update_currentModeOfMove(MOVE_STRAIGHT_CORRECT_ALIGNEMENT);
-    			if(get_staticFoundLine() == false) {
-    				++lostLineCounter;
-    			} else {
-    				lostLineCounter = 0;
-    			}
-    			if(lostLineCounter == 100) {
-    				currentMode = STOP;
-    			}
-    			if(get_lineWidth() > (uint16_t)(400)) {
-    				update_currentModeOfMove(STOP_MOVE);
-    				currentMode = MEASURE;
-    			}
-        		break;
-
-        	case MEASURE:
-        		if (distanceToTravel == 0) {
-        			set_front_led(1);
-        			//faire un nouveau mode pour faire uniquement la mesure ? :thinking
-        			do {
-        				measurement_average += VL53L0X_get_dist_mm();
-        				counter += 1;
-        				chThdSleepMilliseconds(100);
-        			} while (counter < 20);
-        			distanceToTravel = measurement_average/20; //VL53L0X_get_dist_mm(); //gets distance to object
-        			measurement_average = 0;
-        			counter = 0;
-        			left_motor_pos_target = 72;
-        			reset_motor_pos();
-        			set_movingSpeed(SLOW_SPEED);
-        			update_currentModeOfMove(SPIN_RIGHT);
-        		}
-
-        		if ((get_left_motor_pos() >= left_motor_pos_target) && (wallFound == false)) {
-        			update_currentModeOfMove(STOP_MOVE);
-        			do {
-						measurement_average += VL53L0X_get_dist_mm();
-						counter += 1;
-        				chThdSleepMilliseconds(100);
-					} while (counter < 20);
-        			wallFound = true;
-        			distanceToTravel = (measurement_average/20) - distanceToTravel - OBJECT_DIAMETER/* - WALL_CLEARANCE*/;
-        			measurement_average = 0;
-					counter = 0;
-        		} else if ((wallFound == true) && (wallMeasured == false)) {
-        			set_front_led(0);
-        			reset_motor_pos();
-        			right_motor_pos_target = 72;
-        			wallMeasured = true;
-					set_movingSpeed(SLOW_SPEED);
-					update_currentModeOfMove(SPIN_LEFT);
-        		}
-
-        		if ((get_right_motor_pos() >= right_motor_pos_target) && (wallMeasured == true)) {
-        			update_currentModeOfMove(STOP);
-        			left_motor_pos_target = 0;
-        			right_motor_pos_target = 0;
-        			wallFound = false;
-        			wallMeasured = false;
-        			currentMode = PUSH;
-        		}
-        		break;
-
-        	case PUSH:
-        		if ((distanceToTravel != 0) && (moving == false)) {
-        			set_straight_move_in_mm(distanceToTravel);
-       				distanceToTravel = 0;
-
-        			moving = true;
-        			reset_motor_pos();
-        			set_movingSpeed(DEFAULT_SPEED);
-        			update_currentModeOfMove(MOVE_STRAIGHT);
-        		}
-        		volatile uint32_t current_motor_pos = get_right_motor_pos();
-        		if ((current_motor_pos >= right_motor_pos_target)) {
-        			moving = false;
-        			left_motor_pos_target = 0;
-        			right_motor_pos_target = 0;
-        			update_currentModeOfMove(STOP_MOVE);
-        			currentMode = ROTATE_BEFORE_FOLLOW;
-        		}
-        		break;
-
-        	case ROTATE_BEFORE_FOLLOW:
-        		if(optimizedExitOnLeft) {
-        			/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle begin
-        			if (!usingStepCounters) {
-        				right_motor_pos_target = 308; // to do a 90 degrees right rotation
-						reset_motor_pos();
-						set_movingSpeed(DEFAULT_SPEED);
-						update_currentModeOfMove(SPIN_LEFT);
-						usingStepCounters = true;
-					}
-					if ((get_right_motor_pos() >= right_motor_pos_target) && usingStepCounters) {
-						usingStepCounters = false;
-						reset_motor_pos();
-//						currentMode = FOLLOW;
-						currentMode = STOP;
-					}
-					/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle end
-        		}
-        		else {
-        			/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle begin
-        			if (!usingStepCounters) {
-						left_motor_pos_target = 308; // to do a 90 degrees right rotation
-						reset_motor_pos();
-						set_movingSpeed(DEFAULT_SPEED);
-						update_currentModeOfMove(SPIN_RIGHT);
-						usingStepCounters = true;
-					}
-					if ((get_left_motor_pos() >= left_motor_pos_target) && usingStepCounters) {
-						usingStepCounters = false;
-						reset_motor_pos();
-//						currentMode = FOLLOW;
-						currentMode = STOP;
-					}
-					/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle end
-        		}
-//        		if (!usingStepCounters) {
-//        			if(optimizedExitOnLeft) {
+//        	case ANALYSE:
+//        		set_movingSpeed(DEFAULT_SPEED);
+//        		update_currentModeOfMove(SPIN_RIGHT);
+//        		break;
+//
+//        	case ALIGN:
+//        		set_movingSpeed(DEFAULT_SPEED);
+//        		update_currentModeOfMove(SPIN_ALIGNEMENT);
+//        		break;
+//
+//        	case PURSUIT:
+//        		set_movingSpeed(DEFAULT_SPEED);
+//        		update_currentModeOfMove(MOVE_STRAIGHT_CORRECT_ALIGNEMENT);
+//    			if(get_staticFoundLine() == false) {
+//    				++lostLineCounter;
+//    			} else {
+//    				lostLineCounter = 0;
+//    			}
+//    			if(lostLineCounter == 100) {
+//    				currentMode = STOP;
+//    			}
+//    			if(get_lineWidth() > (uint16_t)(400)) {
+//    				update_currentModeOfMove(STOP_MOVE);
+//    				currentMode = MEASURE;
+//    			}
+//        		break;
+//
+//        	case MEASURE:
+//        		if (distanceToTravel == 0) {
+//        			set_front_led(1);
+//        			//faire un nouveau mode pour faire uniquement la mesure ? :thinking
+//        			do {
+//        				measurement_average += VL53L0X_get_dist_mm();
+//        				counter += 1;
+//        				chThdSleepMilliseconds(100);
+//        			} while (counter < 20);
+//        			distanceToTravel = measurement_average/20; //VL53L0X_get_dist_mm(); //gets distance to object
+//        			measurement_average = 0;
+//        			counter = 0;
+//        			left_motor_pos_target = 72;
+//        			reset_motor_pos();
+//        			set_movingSpeed(SLOW_SPEED);
+//        			update_currentModeOfMove(SPIN_RIGHT);
+//        		}
+//
+//        		if ((get_left_motor_pos() >= left_motor_pos_target) && (wallFound == false)) {
+//        			update_currentModeOfMove(STOP_MOVE);
+//        			do {
+//						measurement_average += VL53L0X_get_dist_mm();
+//						counter += 1;
+//        				chThdSleepMilliseconds(100);
+//					} while (counter < 20);
+//        			wallFound = true;
+//        			distanceToTravel = (measurement_average/20) - distanceToTravel - OBJECT_DIAMETER/* - WALL_CLEARANCE*/;
+//        			measurement_average = 0;
+//					counter = 0;
+//        		} else if ((wallFound == true) && (wallMeasured == false)) {
+//        			set_front_led(0);
+//        			reset_motor_pos();
+//        			right_motor_pos_target = 72;
+//        			wallMeasured = true;
+//					set_movingSpeed(SLOW_SPEED);
+//					update_currentModeOfMove(SPIN_LEFT);
+//        		}
+//
+//        		if ((get_right_motor_pos() >= right_motor_pos_target) && (wallMeasured == true)) {
+//        			update_currentModeOfMove(STOP);
+//        			left_motor_pos_target = 0;
+//        			right_motor_pos_target = 0;
+//        			wallFound = false;
+//        			wallMeasured = false;
+//        			currentMode = PUSH;
+//        		}
+//        		break;
+//
+//        	case PUSH:
+//        		if ((distanceToTravel != 0) && (moving == false)) {
+//        			set_straight_move_in_mm(distanceToTravel);
+//       				distanceToTravel = 0;
+//
+//        			moving = true;
+//        			reset_motor_pos();
+//        			set_movingSpeed(DEFAULT_SPEED);
+//        			update_currentModeOfMove(MOVE_STRAIGHT);
+//        		}
+//        		volatile uint32_t current_motor_pos = get_right_motor_pos();
+//        		if ((current_motor_pos >= right_motor_pos_target)) {
+//        			moving = false;
+//        			left_motor_pos_target = 0;
+//        			right_motor_pos_target = 0;
+//        			update_currentModeOfMove(STOP_MOVE);
+//        			currentMode = ROTATE_BEFORE_FOLLOW;
+//        		}
+//        		break;
+//
+//        	case ROTATE_BEFORE_FOLLOW:
+//        		if(optimizedExitOnLeft) {
+//        			/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle begin
+//        			if (!usingStepCounters) {
 //        				right_motor_pos_target = 308; // to do a 90 degrees right rotation
 //						reset_motor_pos();
 //						set_movingSpeed(DEFAULT_SPEED);
 //						update_currentModeOfMove(SPIN_LEFT);
 //						usingStepCounters = true;
-//        			} else {
-//        				left_motor_pos_target = 308; // to do a 90 degrees right rotation
+//					}
+//					if ((get_right_motor_pos() >= right_motor_pos_target) && usingStepCounters) {
+//						usingStepCounters = false;
+//						reset_motor_pos();
+////						currentMode = FOLLOW;
+//						currentMode = STOP;
+//					}
+//					/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle end
+//        		}
+//        		else {
+//        			/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle begin
+//        			if (!usingStepCounters) {
+//						left_motor_pos_target = 308; // to do a 90 degrees right rotation
 //						reset_motor_pos();
 //						set_movingSpeed(DEFAULT_SPEED);
 //						update_currentModeOfMove(SPIN_RIGHT);
 //						usingStepCounters = true;
-//        			}
-//
-//				}
-//        		if(optimizedExitOnLeft && (get_right_motor_pos() >= right_motor_pos_target) && usingStepCounters) {
-//        			usingStepCounters = false;
-//					reset_motor_pos();
-////					currentMode = FOLLOW;
-//					currentMode = STOP;
+//					}
+//					if ((get_left_motor_pos() >= left_motor_pos_target) && usingStepCounters) {
+//						usingStepCounters = false;
+//						reset_motor_pos();
+////						currentMode = FOLLOW;
+//						currentMode = STOP;
+//					}
+//					/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle end
 //        		}
-//				if ((!optimizedExitOnLeft) && (get_left_motor_pos() >= left_motor_pos_target) && usingStepCounters) {
-//					usingStepCounters = false;
-//					reset_motor_pos();
-////					currentMode = FOLLOW;
-//					currentMode = STOP;
+//        		break;
+//
+//        	case FOLLOW: ;
+//        		set_movingSpeed(400);
+//        		int *prox_values = get_prox_value();
+//        		int16_t speedCorrection = (int16_t)(SPEED_CORRECTION_SENSIBILITY_OVER_PROXI * prox_values[PROX_FRONT_LEFT_49]) - (GOAL_PROXI_VALUE * SPEED_CORRECTION_SENSIBILITY_OVER_PROXI);
+//        		if((prox_values[PROX_FRONT_LEFT_49] <= GOAL_PROXI_VALUE)) {
+//        			speedCorrection = 0;
+//        		} else {
+//        			foundWall = true;
+//        		}
+//        		follow_left_wall_with_speed_correction(speedCorrection);
+//
+//        		bool *prox_status_table = get_prox_activation_status(PROX_DETECTION_THRESHOLD);
+//				if ((prox_status_table[PROX_FRONT_LEFT_49] == false) && foundWall) {
+//					update_currentModeOfMove(MOVE_STRAIGHT);
+//					if(prox_status_table[PROX_LEFT] == false) {
+//						foundWall = false;
+//						update_currentModeOfMove(STOP_MOVE);
+//						currentMode = EXIT;
+//					}
 //				}
+//        		break;
+//
+//        	case EXIT:
+//        		break;
+//
+//        	case RECENTER:
+//        		break;
 
-        		break;
-
-        	case FOLLOW: ;
-        		set_movingSpeed(400);
-        		int *prox_values = get_prox_value();
-        		int16_t speedCorrection = (int16_t)(SPEED_CORRECTION_SENSIBILITY_OVER_PROXI * prox_values[PROX_FRONT_LEFT_49]) - (GOAL_PROXI_VALUE * SPEED_CORRECTION_SENSIBILITY_OVER_PROXI);
-        		if((prox_values[PROX_FRONT_LEFT_49] <= GOAL_PROXI_VALUE)) {
-        			speedCorrection = 0;
-        		} else {
-        			foundWall = true;
+        	case ROTATE_TRACKER_TEST:
+        		if(!get_trackerIsUsed()) {
+        			set_movingSpeed(DEFAULT_SPEED);
+        			update_currentModeOfMove(SPIN_RIGHT);
+        			trackRotationOfDegree(360 + TRACKING_ERROR * 360);
         		}
-        		follow_left_wall_with_speed_correction(speedCorrection);
-
-        		bool *prox_status_table = get_prox_activation_status(PROX_DETECTION_THRESHOLD);
-				if ((prox_status_table[PROX_FRONT_LEFT_49] == false) && foundWall) {
-					update_currentModeOfMove(MOVE_STRAIGHT);
-					if(prox_status_table[PROX_LEFT] == false) {
-						foundWall = false;
-						update_currentModeOfMove(STOP_MOVE);
-						currentMode = EXIT;
-					}
-				}
-        		break;
-
-        	case EXIT:
-        		break;
-
-        	case RECENTER:
+        		if(get_trackerIsUsed() && get_trackingFinished()) {
+        			currentMode = STOP;
+        		}
         		break;
 
         	default:
@@ -313,7 +300,7 @@ static THD_FUNCTION(CentralUnit, arg) {
 
 		//////////////////////////////////////////////////////////////testing purposes
 		if(get_selector() == 1) {
-			currentMode = ROTATE_BEFORE_FOLLOW;
+			currentMode = ROTATE_TRACKER_TEST;
 		}
 		//////////////////////////////////////////////////////////////testing purposes
 
@@ -369,8 +356,8 @@ void central_unit_start(void){
 	chThdCreateStatic(waCentralUnit, sizeof(waCentralUnit), NORMALPRIO, CentralUnit, NULL);
 }
 
-void set_straight_move_in_mm(uint32_t distance_in_mm) {
-	right_motor_pos_target = (distance_in_mm*NSTEP_ONE_TURN)/(WHEEL_PERIMETER);
-	left_motor_pos_target = (distance_in_mm*NSTEP_ONE_TURN)/(WHEEL_PERIMETER);
-}
+//void set_straight_move_in_mm(uint32_t distance_in_mm) {
+//	right_motor_pos_target = (distance_in_mm*NSTEP_ONE_TURN)/(WHEEL_PERIMETER);
+//	left_motor_pos_target = (distance_in_mm*NSTEP_ONE_TURN)/(WHEEL_PERIMETER);
+//}
 

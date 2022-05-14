@@ -14,7 +14,8 @@ typedef enum {
 	ROTATE_BEFORE_FOLLOW, //////////////////////////////////////////////////////////////////////// test_max_1205 created
 	FOLLOW,
 	EXIT,
-	RECENTER
+	RECENTER,
+	ROTATE_TRACKER_TEST,
 } task_mode;
 
 //start the central unit thread

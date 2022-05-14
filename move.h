@@ -28,8 +28,8 @@ void update_currentModeOfMove(move_mode mode);
 void set_rotationMappingIsOn(bool status);
 int get_rotationMappingValue(void);
 void reset_motor_pos(void);
-uint32_t get_right_motor_pos(void);
-uint32_t get_left_motor_pos(void);
+int32_t get_right_motor_pos(void);
+int32_t get_left_motor_pos(void);
 
 // follow mode
 void follow_left_wall_with_speed_correction(int16_t leftSpeedCorrection);

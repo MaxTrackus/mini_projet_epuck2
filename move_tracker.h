@@ -15,8 +15,11 @@ typedef enum {
 } move_tracker_mode;
 
 void move_tracker_start(void);
-bool get_trackingFinished();
+void stop_tracker(void);
+bool get_trackingFinished(void);
 void set_trackerMode(move_tracker_mode mode);
-void reset_motor_pos_MOVETRACKER(void);
+void trackRotationOfDegree(int16_t degree);
+void reset_motor_pos_TRACKER(void);
+bool get_trackerIsUsed(void);
 
 #endif /* MOVE_TRACKER_H_ */
