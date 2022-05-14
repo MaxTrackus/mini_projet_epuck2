@@ -14,6 +14,7 @@ typedef enum {
 	ROTATE_BEFORE_FOLLOW, //////////////////////////////////////////////////////////////////////// test_max_1205 created
 	FOLLOW,
 	EXIT,
+	PUSH_OUT,
 	RECENTER
 } task_mode;
 
@@ -22,5 +23,8 @@ void central_unit_start(void);
 
 void set_mode_with_selector(void);
 void set_straight_move_in_mm(uint32_t distance_in_mm);
+
+
+uint32_t degrees_to_motor_step(uint16_t degrees);
 
 #endif /* CENTRAL_UNIT_H */

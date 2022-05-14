@@ -66,6 +66,7 @@ static THD_FUNCTION(CentralUnit, arg) {
     (void)arg;
 
     volatile systime_t time;
+    volatile uint32_t current_motor_pos;
 
     while(1){
         time = chVTGetSystemTime();
@@ -175,7 +176,7 @@ static THD_FUNCTION(CentralUnit, arg) {
         			set_movingSpeed(DEFAULT_SPEED);
         			update_currentModeOfMove(MOVE_STRAIGHT);
         		}
-        		volatile uint32_t current_motor_pos = get_right_motor_pos();
+        		current_motor_pos = get_right_motor_pos();
         		if ((current_motor_pos >= right_motor_pos_target)) {
         			moving = false;
         			left_motor_pos_target = 0;
@@ -198,8 +199,8 @@ static THD_FUNCTION(CentralUnit, arg) {
 					if ((get_right_motor_pos() >= right_motor_pos_target) && usingStepCounters) {
 						usingStepCounters = false;
 						reset_motor_pos();
-//						currentMode = FOLLOW;
-						currentMode = STOP;
+						currentMode = FOLLOW;
+						// currentMode = STOP;
 					}
 					/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle end
         		}
@@ -215,8 +216,8 @@ static THD_FUNCTION(CentralUnit, arg) {
 					if ((get_left_motor_pos() >= left_motor_pos_target) && usingStepCounters) {
 						usingStepCounters = false;
 						reset_motor_pos();
-//						currentMode = FOLLOW;
-						currentMode = STOP;
+						currentMode = FOLLOW;
+// 						currentMode = STOP;
 					}
 					/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle end
         		}
@@ -255,7 +256,7 @@ static THD_FUNCTION(CentralUnit, arg) {
         		set_movingSpeed(400);
         		int *prox_values = get_prox_value();
         		int16_t speedCorrection = (int16_t)(SPEED_CORRECTION_SENSIBILITY_OVER_PROXI * prox_values[PROX_FRONT_LEFT_49]) - (GOAL_PROXI_VALUE * SPEED_CORRECTION_SENSIBILITY_OVER_PROXI);
-        		if((!foundWall) && (prox_values[PROX_FRONT_LEFT_49] <= GOAL_PROXI_VALUE)) {
+        		if((prox_values[PROX_FRONT_LEFT_49] <= GOAL_PROXI_VALUE)) {
         			speedCorrection = 0;
         		} else {
         			foundWall = true;
@@ -274,9 +275,80 @@ static THD_FUNCTION(CentralUnit, arg) {
         		break;
 
         	case EXIT:
+        		if(!optimizedExitOnLeft) {
+        			/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle begin
+        			if (!usingStepCounters) {
+        				right_motor_pos_target = degrees_to_motor_step(90); // to do a 90 degrees right rotation
+						reset_motor_pos();
+						set_movingSpeed(DEFAULT_SPEED);
+						update_currentModeOfMove(SPIN_LEFT);
+						usingStepCounters = true;
+					}
+					if ((get_right_motor_pos() >= right_motor_pos_target) && usingStepCounters) {
+						usingStepCounters = false;
+						reset_motor_pos();
+						currentMode = STOP;
+					}
+					/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle end
+        		}
+        		else {
+        			/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle begin
+        			if (!usingStepCounters) {
+						left_motor_pos_target = degrees_to_motor_step(90); // to do a 90 degrees right rotation
+						reset_motor_pos();
+						set_movingSpeed(DEFAULT_SPEED);
+						update_currentModeOfMove(SPIN_RIGHT);
+						usingStepCounters = true;
+					}
+					if ((get_left_motor_pos() >= left_motor_pos_target) && usingStepCounters) {
+						usingStepCounters = false;
+						reset_motor_pos();
+						currentMode = STOP;
+					}
+					/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle end
+        		}
+        		break;
+
+        	case PUSH_OUT:
+        		if ((distanceToTravel != 0) && (moving == false)) {
+        			set_straight_move_in_mm(distanceToTravel);
+        			moving = true;
+        			reset_motor_pos();
+        			set_movingSpeed(DEFAULT_SPEED);
+        			update_currentModeOfMove(MOVE_STRAIGHT);
+        		} else {
+        			distanceToTravel = 100;
+        		}
+        		current_motor_pos = get_right_motor_pos();
+        		if ((current_motor_pos >= right_motor_pos_target)) {
+        			moving = false;
+        			left_motor_pos_target = 0;
+        			right_motor_pos_target = 0;
+        			update_currentModeOfMove(STOP_MOVE);
+        			distanceToTravel = 0;
+        			currentMode = RECENTER;
+        		}
         		break;
 
         	case RECENTER:
+        		if ((distanceToTravel != 0) && (moving == false)) {
+        			set_straight_move_in_mm(distanceToTravel);
+        			moving = true;
+        			reset_motor_pos();
+        			set_movingSpeed(DEFAULT_SPEED);
+        			update_currentModeOfMove(MOVE_STRAIGHT);
+        		} else {
+        			distanceToTravel = 350;
+        		}
+        		current_motor_pos = get_right_motor_pos();
+        		if ((current_motor_pos >= right_motor_pos_target)) {
+        			moving = false;
+        			left_motor_pos_target = 0;
+        			right_motor_pos_target = 0;
+        			update_currentModeOfMove(STOP_MOVE);
+        			distanceToTravel = 0;
+        			currentMode = MEASURE;
+        		}
         		break;
 
         	default:
@@ -366,5 +438,9 @@ void central_unit_start(void){
 void set_straight_move_in_mm(uint32_t distance_in_mm) {
 	right_motor_pos_target = (distance_in_mm*NSTEP_ONE_TURN)/(WHEEL_PERIMETER);
 	left_motor_pos_target = (distance_in_mm*NSTEP_ONE_TURN)/(WHEEL_PERIMETER);
+}
+
+uint32_t degrees_to_motor_step(uint16_t degrees) {
+	return ((uint32_t)(((DEG2RAD) * degrees * TRACK_WIDTH * NSTEP_ONE_TURN)/(2 * WHEEL_PERIMETER)));
 }
 
