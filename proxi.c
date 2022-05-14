@@ -1,23 +1,13 @@
-#include "ch.h"
-#include "hal.h"
-#include <chprintf.h>
-#include <usbcfg.h>
+#include "ch.h" //usage ?
+#include "hal.h" //usage ?
+#include <chprintf.h> //usage ?
+#include <usbcfg.h> //usage ?
 #include <sensors/proximity.h>
-#include <leds.h>
-#include <motors.h>
-#include <epuck1x/utility/utility.h> //used for wait function 
 
 #include <main.h>
-
 #include <proxi.h>
-#include <testing.h>
 
-
-#define MAX_PROX_VALUE					4.095 // to remove once completed
-
-#define PROX_DETECTION_THRESHOLD		100
-
-#define NB_PROX_SENSORS					8
+#define NB_PROX_SENSORS		8
 
 static int prox_value[NB_PROX_SENSORS];
 
@@ -63,15 +53,3 @@ static THD_FUNCTION(ReadProx, arg) {
 void read_prox_start(void) {
 	chThdCreateStatic(waReadProx, sizeof(waReadProx), NORMALPRIO, ReadProx, NULL);
 }
-
-//void test_prox_with_leds(unsigned int sensor_number) {
-//
-//	volatile unsigned int prox_right_value = ((float)get_calibrated_prox(sensor_number)/(MAX_PROX_VALUE))*0.008; // Normalize proximity value to int of max value <= 9
-//
-//	set_led_with_int(prox_right_value);
-//
-//	wait(84000);
-//
-//	clear_led_with_int(prox_right_value);
-//}
-
