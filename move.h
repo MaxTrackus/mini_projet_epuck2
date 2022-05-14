@@ -14,6 +14,12 @@ typedef enum {
 	//////////////////////////////////////////////////////////////////////// test_max_1205
 } move_mode;
 
+typedef enum {
+	WAITING, 
+	STARTED,
+	COMPLETED,
+} action_status;
+
 void move_start(void);
 bool toggle_boolean(bool x);
 void stopMove(void);
@@ -30,7 +36,8 @@ void set_movingSpeed(int speed);
 void update_currentModeOfMove(move_mode mode);
 void set_rotationMappingIsOn(bool status);
 int get_rotationMappingValue(void);
-bool get_movementCompleted(void);
+action_status get_movementStatus(void);
+void set_movementStatus(action_status status)
 void reset_motor_pos(void);
 uint32_t get_right_motor_pos(void);
 uint32_t get_left_motor_pos(void);

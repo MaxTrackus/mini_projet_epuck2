@@ -30,6 +30,7 @@
 #define	PROX_DETECTION_THRESHOLD		10
 
 #define NSAMPLE_TOF						20
+#define TWENTY_DEGREES					20 			// [degree]
 
 //////////////////////////////////////////////////////////////////////// test_max_1205
 #define	SPEED_CORRECTION_SENSIBILITY_OVER_PROXI		2
@@ -123,16 +124,22 @@ static THD_FUNCTION(CentralUnit, arg) {
         			do {
         				measurement_average += VL53L0X_get_dist_mm();
         				counter += 1;
-        				chThdSleepMilliseconds(100);
+        				chThdSleepMilliseconds(100); //allows TOF thread to re-new measurements
         			} while (counter < NSAMPLE_TOF);
-        			distanceToTravel = measurement_average/NSAMPLE_TOF; //VL53L0X_get_dist_mm(); //gets distance to object
+        			distanceToTravel = measurement_average/NSAMPLE_TOF; //gets distance to object
         			measurement_average = 0;
         			counter = 0;
-        			left_motor_pos_target = 72;//1295;
-        			reset_motor_pos();
-        			set_movingSpeed(SLOW_SPEED);
-        			update_currentModeOfMove(SPIN_RIGHT);
         		}
+
+        		
+
+        		if ((get_movementStatus() != COMPLETED) && (wallFound == false) {
+        			rotate_in_degrees(DEFAULT_SPEED, TWENTY_DEGREES);
+        		} else if (get_movementStatus() == COMPLETED) {
+        			wallFound = true; 
+        			set_movingSpeed(WAITING);
+        		}
+        		
 
         		//volatile uint16_t tof = VL53L0X_get_dist_mm();
 

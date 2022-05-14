@@ -14,7 +14,7 @@
 #define MAX_MOTOR_SPEED					1100 // [steps/s]
 
 #define TRACK_WIDTH						51			// [mm]
-#define TWENTY_DEGREES					20 			// [degree]
+
 #define	DEG2RAD							(M_PI)/180
 #define NSTEP_ONE_TURN      			1000 // number of step for 1 turn of the motor
 #define WHEEL_PERIMETER     			130 // [mm]
@@ -30,7 +30,7 @@ static uint16_t movingSpeed = 0; // devrait ?re signed ?
 static uint32_t	right_motor_pos_target = 0;
 static uint32_t	left_motor_pos_target = 0;
 static bool robotMoving = false; 
-static bool movementCompleted = false; //static used to pass the info to central unit that a movement is done
+static action_status movementStatus = WAITING; //static used to pass the info to central unit that a movement is done
 
 //////////////////////////////////////////////////////////////////////// test_max_1205
 static int16_t leftMotorCorrectionSpeed = 0;
@@ -122,9 +122,14 @@ int get_rotationMappingValue(void) {
 	return rotationMappingValue;
 }
 
-bool get_movementCompleted(void) {
-	return movementCompleted;
+action_status get_movementStatus(void) {
+	return movementStatus;
 }
+
+void set_movementStatus(action_status status) {
+	movementStatus = status;
+}
+
 
 
 
@@ -219,11 +224,11 @@ void rotate_in_degrees(int speed, int degrees) {
 		if ((degrees > 0) && (get_left_motor_pos() >= left_motor_pos_target)) {
 			//make a function with 3 following lines like finish_movement(void)... 
 			currentModeOfMove = STOP_MOVE;
-			movementCompleted = true;
+			movementStatus = COMPLETED;
 			reset_moving_static();
 		} else if ((degrees < 0) && (get_right_motor_pos() >= right_motor_pos_target)) {
 			currentModeOfMove = STOP_MOVE;
-			movementCompleted = true;
+			movementStatus = COMPLETED;
 			reset_moving_static();		
 		}
 	}
