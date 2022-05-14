@@ -14,6 +14,7 @@
 #include <move.h>
 #include <pi_regulator.h>
 #include <proxi.h>
+#include <move_tracker.h>
 
 #define DEFAULT_SPEED					200 	// [steps/s]
 #define SLOW_SPEED						50 		// [steps/s]
@@ -44,11 +45,14 @@
 #define THRESHOLD_ANGLE_FOR_OPTIMIZED_EXIT			180 // [deg]
 #define THRESHOLD_STEPS_FOR_OPTIMIZED_EXIT			620 // [steps]       (uint16_t)(THRESHOLD_ANGLE_FOR_OPTIMIZED_EXIT * DEG2RAD * TRACK_WIDTH * NSTEP_ONE_TURN) / (2*WHEEL_PERIMETER)   ?
 
+// move_tracker
+#define TRACKING_ERROR 					0.05
+
 // follow mode
 static bool foundWall = false;
 static bool usingStepCounters = false;
 
-static volatile task_mode currentMode = IDLE;
+static volatile task_mode currentMode = STOP; // laisse à STOP stp.       MaxTrackus
 static volatile int distanceToTravel = 0;
 static volatile bool wallFound = false;
 static bool wallMeasured = false;
@@ -98,6 +102,7 @@ static THD_FUNCTION(CentralUnit, arg) {
         		set_movingSpeed(DEFAULT_SPEED);
         		update_currentModeOfMove(STOP_MOVE);
         		optimizedExitOnLeft = true;
+        		stop_tracker();
         		break;
 
         	case ANALYSE:
@@ -230,40 +235,11 @@ static THD_FUNCTION(CentralUnit, arg) {
 					}
 					/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle end
         		}
-//        		if (!usingStepCounters) {
-//        			if(optimizedExitOnLeft) {
-//        				right_motor_pos_target = 308; // to do a 90 degrees right rotation
-//						reset_motor_pos();
-//						set_movingSpeed(DEFAULT_SPEED);
-//						update_currentModeOfMove(SPIN_LEFT);
-//						usingStepCounters = true;
-//        			} else {
-//        				left_motor_pos_target = 308; // to do a 90 degrees right rotation
-//						reset_motor_pos();
-//						set_movingSpeed(DEFAULT_SPEED);
-//						update_currentModeOfMove(SPIN_RIGHT);
-//						usingStepCounters = true;
-//        			}
-//
-//				}
-//        		if(optimizedExitOnLeft && (get_right_motor_pos() >= right_motor_pos_target) && usingStepCounters) {
-//        			usingStepCounters = false;
-//					reset_motor_pos();
-////					currentMode = FOLLOW;
-//					currentMode = STOP;
-//        		}
-//				if ((!optimizedExitOnLeft) && (get_left_motor_pos() >= left_motor_pos_target) && usingStepCounters) {
-//					usingStepCounters = false;
-//					reset_motor_pos();
-////					currentMode = FOLLOW;
-//					currentMode = STOP;
-//				}
-
         		break;
 
         	case FOLLOW: ;
         		set_movingSpeed(FAST_SPEED);
-        		int *prox_values = get_prox_value();
+        		uint16_t *prox_values = get_prox_value();
 
         		if (optimizedExitOnLeft) {
         			prox_for_follow = PROX_FRONT_RIGHT_49;
@@ -339,7 +315,7 @@ static THD_FUNCTION(CentralUnit, arg) {
         			reset_motor_pos();
         			set_movingSpeed(DEFAULT_SPEED);
         			update_currentModeOfMove(MOVE_STRAIGHT);
-        		} 
+        		}
         		current_motor_pos = get_right_motor_pos();
         		if ((current_motor_pos > right_motor_pos_target)) {
         			moving = false;
@@ -374,44 +350,83 @@ static THD_FUNCTION(CentralUnit, arg) {
         		}
         		break;
 
+        	case ROTATE_TRACKER_TEST:
+				if(!get_trackerIsUsed()) {
+					set_movingSpeed(DEFAULT_SPEED);
+					update_currentModeOfMove(SPIN_RIGHT);
+					trackRotationOfDegree((int16_t)(360 + TRACKING_ERROR * 360));
+				}
+				if(get_trackerIsUsed() && get_trackingFinished()) {
+					currentMode = STOP;
+				}
+				break;
+
+			case STRAIGHT_TRACKER_TEST:
+				if(!get_trackerIsUsed()) {
+					set_movingSpeed(-DEFAULT_SPEED);
+					update_currentModeOfMove(MOVE_STRAIGHT);
+					trackStraightAdvance((int16_t)(-70 - TRACKING_ERROR * 70));
+				}
+				if(get_trackerIsUsed() && get_trackingFinished()) {
+					currentMode = STOP;
+				}
+				break;
+
+			case TEST_ROTATION_MAPPING:
+				set_rotationMappingIsOn(true);
+				update_currentModeOfMove(SPIN_RIGHT);
+				//determine if it is shorter to follow the wall counterclockwise (true) or clockwise (false)
+				if(get_rotationMappingValue() >= THRESHOLD_STEPS_FOR_OPTIMIZED_EXIT) {
+					optimizedExitOnLeft = false;
+				} else {
+					optimizedExitOnLeft = true;
+				}
+				break;
+
         	default:
         		currentMode = IDLE;
         		break;
         }
 
-		//from idle to analyseMode
-		if((get_selector() == 1) && !(currentMode == ALIGN) && !(currentMode == PURSUIT)) {
-			currentMode = ANALYSE;
-		}
-		//from analyseMode to alignementMode
-		if((currentMode == ANALYSE) && get_staticFoundLine()) {
-			currentMode = ALIGN;
-		}
-		//from alignementMode to analyseMode
-		if((currentMode == ALIGN) && (!(get_staticFoundLine()))) {
-			currentMode = ANALYSE;
-		}
-		//from alignementMode to pursuit
-		if((currentMode == ALIGN) && (get_regulationCompleted())) {
-			// determine if it is shorter to follow the wall counterclockwise (true) or clockwise (false)
-			if(get_rotationMappingValue() >= THRESHOLD_STEPS_FOR_OPTIMIZED_EXIT) { // must be calibrated, maybe 700 is not the good parameter. must test with the rotation of a certain angle when avalaible
-				optimizedExitOnLeft = false;
-			} else {
-				optimizedExitOnLeft = true;
-			}
-			currentMode = PURSUIT;
-		}
+//		//from idle to analyseMode
+//		if((get_selector() == 1) && !(currentMode == ALIGN) && !(currentMode == PURSUIT)) {
+//			currentMode = ANALYSE;
+//		}
+//		//from analyseMode to alignementMode
+//		if((currentMode == ANALYSE) && get_staticFoundLine()) {
+//			currentMode = ALIGN;
+//		}
+//		//from alignementMode to analyseMode
+//		if((currentMode == ALIGN) && (!(get_staticFoundLine()))) {
+//			currentMode = ANALYSE;
+//		}
+//		//from alignementMode to pursuit
+//		if((currentMode == ALIGN) && (get_regulationCompleted())) {
+//			// determine if it is shorter to follow the wall counterclockwise (true) or clockwise (false)
+//			if(get_rotationMappingValue() >= THRESHOLD_STEPS_FOR_OPTIMIZED_EXIT) { // must be calibrated, maybe 700 is not the good parameter. must test with the rotation of a certain angle when avalaible
+//				optimizedExitOnLeft = false;
+//			} else {
+//				optimizedExitOnLeft = true;
+//			}
+//			currentMode = PURSUIT;
+//		}
 		//stop and idle
 		if((get_selector() == 15)) {
 			currentMode = STOP;
 		}
 
+		//////////////////////////////////////////////////////////////testing purposes
+		if(get_selector() == 1) {
+			currentMode = TEST_ROTATION_MAPPING;
+		}
+		//////////////////////////////////////////////////////////////testing purposes
+
         //enable rotationMapping only in analyse and align modes
-        if((currentMode == ANALYSE) || (currentMode == ALIGN)) {
-        	set_rotationMappingIsOn(true);
-        } else {
-        	set_rotationMappingIsOn(false);
-        }
+//        if((currentMode == ANALYSE) || (currentMode == ALIGN)) {
+//        	set_rotationMappingIsOn(true);
+//        } else {
+//        	set_rotationMappingIsOn(false);
+//        }
 
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));

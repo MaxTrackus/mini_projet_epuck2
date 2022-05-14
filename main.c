@@ -85,6 +85,7 @@ int main(void)
 	process_image_start();
 	move_start();
 	central_unit_start();
+	move_tracker_start();
 
     /* Infinite loop. */
     while (1) {

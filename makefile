@@ -16,6 +16,7 @@ CSRC += ./main.c \
 		./central_unit.c \
 		./proxi.c \
 		./testing.c \
+		./move_tracker.c \
 
 #Header folders to include
 INCDIR += 
