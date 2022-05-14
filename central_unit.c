@@ -388,45 +388,45 @@ static THD_FUNCTION(CentralUnit, arg) {
         		break;
         }
 
-//		//from idle to analyseMode
-//		if((get_selector() == 1) && !(currentMode == ALIGN) && !(currentMode == PURSUIT)) {
-//			currentMode = ANALYSE;
-//		}
-//		//from analyseMode to alignementMode
-//		if((currentMode == ANALYSE) && get_staticFoundLine()) {
-//			currentMode = ALIGN;
-//		}
-//		//from alignementMode to analyseMode
-//		if((currentMode == ALIGN) && (!(get_staticFoundLine()))) {
-//			currentMode = ANALYSE;
-//		}
-//		//from alignementMode to pursuit
-//		if((currentMode == ALIGN) && (get_regulationCompleted())) {
-//			// determine if it is shorter to follow the wall counterclockwise (true) or clockwise (false)
-//			if(get_rotationMappingValue() >= THRESHOLD_STEPS_FOR_OPTIMIZED_EXIT) { // must be calibrated, maybe 700 is not the good parameter. must test with the rotation of a certain angle when avalaible
-//				optimizedExitOnLeft = false;
-//			} else {
-//				optimizedExitOnLeft = true;
-//			}
-//			currentMode = PURSUIT;
-//		}
+		//from idle to analyseMode
+		if((get_selector() == 1) && !(currentMode == ALIGN) && !(currentMode == PURSUIT)) {
+			currentMode = ANALYSE;
+		}
+		//from analyseMode to alignementMode
+		if((currentMode == ANALYSE) && get_staticFoundLine()) {
+			currentMode = ALIGN;
+		}
+		//from alignementMode to analyseMode
+		if((currentMode == ALIGN) && (!(get_staticFoundLine()))) {
+			currentMode = ANALYSE;
+		}
+		//from alignementMode to pursuit
+		if((currentMode == ALIGN) && (get_regulationCompleted())) {
+			// determine if it is shorter to follow the wall counterclockwise (true) or clockwise (false)
+			if(get_rotationMappingValue() >= THRESHOLD_STEPS_FOR_OPTIMIZED_EXIT) { // must be calibrated, maybe 700 is not the good parameter. must test with the rotation of a certain angle when avalaible
+				optimizedExitOnLeft = false;
+			} else {
+				optimizedExitOnLeft = true;
+			}
+			currentMode = PURSUIT;
+		}
 		//stop and idle
 		if((get_selector() == 15)) {
 			currentMode = STOP;
 		}
 
 		//////////////////////////////////////////////////////////////testing purposes
-		if(get_selector() == 1) {
-			currentMode = TEST_ROTATION_MAPPING;
-		}
+//		if(get_selector() == 1) {
+//			currentMode = STRAIGHT_TRACKER_TEST;
+//		}
 		//////////////////////////////////////////////////////////////testing purposes
 
         //enable rotationMapping only in analyse and align modes
-//        if((currentMode == ANALYSE) || (currentMode == ALIGN)) {
-//        	set_rotationMappingIsOn(true);
-//        } else {
-//        	set_rotationMappingIsOn(false);
-//        }
+        if((currentMode == ANALYSE) || (currentMode == ALIGN)) {
+        	set_rotationMappingIsOn(true);
+        } else {
+        	set_rotationMappingIsOn(false);
+        }
 
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
