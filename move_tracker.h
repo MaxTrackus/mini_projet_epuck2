@@ -12,6 +12,7 @@
 typedef enum {
 	TRACK_NOTHING,
 	TRACK_SPIN,
+	TRACK_STRAIGHT,
 } move_tracker_mode;
 
 void move_tracker_start(void);

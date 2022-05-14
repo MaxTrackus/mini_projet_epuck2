@@ -16,6 +16,7 @@ typedef enum {
 	EXIT,
 	RECENTER,
 	ROTATE_TRACKER_TEST,
+	STRAIGHT_TRACKER_TEST,
 } task_mode;
 
 //start the central unit thread

@@ -259,12 +259,23 @@ static THD_FUNCTION(CentralUnit, arg) {
         		if(!get_trackerIsUsed()) {
         			set_movingSpeed(DEFAULT_SPEED);
         			update_currentModeOfMove(SPIN_RIGHT);
-        			trackRotationOfDegree(360 + TRACKING_ERROR * 360);
+        			trackRotationOfDegree((int16_t)(360 + TRACKING_ERROR * 360));
         		}
         		if(get_trackerIsUsed() && get_trackingFinished()) {
         			currentMode = STOP;
         		}
         		break;
+
+        	case STRAIGHT_TRACKER_TEST:
+        		if(!get_trackerIsUsed()) {
+					set_movingSpeed(DEFAULT_SPEED);
+					update_currentModeOfMove(MOVE_STRAIGHT);
+					trackStraightAdvance((int16_t)(70 + TRACKING_ERROR * 70));
+				}
+				if(get_trackerIsUsed() && get_trackingFinished()) {
+					currentMode = STOP;
+				}
+				break;
 
         	default:
         		currentMode = IDLE;
@@ -300,7 +311,7 @@ static THD_FUNCTION(CentralUnit, arg) {
 
 		//////////////////////////////////////////////////////////////testing purposes
 		if(get_selector() == 1) {
-			currentMode = ROTATE_TRACKER_TEST;
+			currentMode = STRAIGHT_TRACKER_TEST;
 		}
 		//////////////////////////////////////////////////////////////testing purposes
 

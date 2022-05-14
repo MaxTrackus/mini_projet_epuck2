@@ -46,22 +46,30 @@ static THD_FUNCTION(MoveTracker, arg) {
 				//do nothing
 				trackingFinished = true;
 				reset_motor_pos_TRACKER();
+				right_motor_pos_target = 0;
 				break;
 
 			case TRACK_SPIN:
-				if((right_motor_pos_target < 0) && ((int16_t)right_motor_get_pos() < right_motor_pos_target)) {
-					currentModeOfTracker = TRACK_NOTHING;
-				}
-
-				if((right_motor_pos_target > 0) && ((int16_t)right_motor_get_pos() > right_motor_pos_target)) {
-					currentModeOfTracker = TRACK_NOTHING;
-				}
+				check_position();
+				break;
+			case TRACK_STRAIGHT:
+				check_position();
 				break;
         }
 
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
     }
+}
+
+void check_position(void) {
+	if((right_motor_pos_target < 0) && ((int16_t)right_motor_get_pos() < right_motor_pos_target)) {
+		currentModeOfTracker = TRACK_NOTHING;
+	}
+
+	if((right_motor_pos_target > 0) && ((int16_t)right_motor_get_pos() > right_motor_pos_target)) {
+		currentModeOfTracker = TRACK_NOTHING;
+	}
 }
 
 void move_tracker_start(void) {
@@ -95,6 +103,16 @@ void trackRotationOfDegree(int16_t degree) {
 		reset_motor_pos_TRACKER();
 		right_motor_pos_target = (int16_t)(((DEG2RAD) * (-degree) * TRACK_WIDTH * NSTEP_ONE_TURN)/(2 * WHEEL_PERIMETER));
 		currentModeOfTracker = TRACK_SPIN;
+	}
+}
+
+void trackStraightAdvance(int16_t milimeters) {
+	if(!trackerIsUsed) {
+		trackerIsUsed = true;
+		trackingFinished = false;
+		reset_motor_pos_TRACKER();
+		right_motor_pos_target = (int16_t)(milimeters * (NSTEP_ONE_TURN / WHEEL_PERIMETER));
+		currentModeOfTracker = TRACK_STRAIGHT;
 	}
 }
 
