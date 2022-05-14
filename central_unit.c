@@ -277,6 +277,18 @@ static THD_FUNCTION(CentralUnit, arg) {
 				}
 				break;
 
+        	case TEST_ROTATION_MAPPING:
+        		set_rotationMappingIsOn(true);
+        		update_currentModeOfMove(SPIN_RIGHT);
+        		//determine if it is shorter to follow the wall counterclockwise (true) or clockwise (false)
+				if(get_rotationMappingValue() >= THRESHOLD_STEPS_FOR_OPTIMIZED_EXIT) {
+					optimizedExitOnLeft = false;
+				} else {
+					optimizedExitOnLeft = true;
+				}
+				chprintf((BaseSequentialStream *)&SD3, "pos=%d", optimizedExitOnLeft);
+        		break;
+
         	default:
         		currentMode = IDLE;
         		break;
@@ -311,16 +323,16 @@ static THD_FUNCTION(CentralUnit, arg) {
 
 		//////////////////////////////////////////////////////////////testing purposes
 		if(get_selector() == 1) {
-			currentMode = STRAIGHT_TRACKER_TEST;
+			currentMode = TEST_ROTATION_MAPPING;
 		}
 		//////////////////////////////////////////////////////////////testing purposes
 
         //enable rotationMapping only in analyse and align modes
-        if((currentMode == ANALYSE) || (currentMode == ALIGN)) {
-        	set_rotationMappingIsOn(true);
-        } else {
-        	set_rotationMappingIsOn(false);
-        }
+//        if((currentMode == ANALYSE) || (currentMode == ALIGN)) {
+//        	set_rotationMappingIsOn(true);
+//        } else {
+//        	set_rotationMappingIsOn(false);
+//        }
 
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));

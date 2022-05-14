@@ -27,7 +27,7 @@ static int16_t right_motor_pos_targetTRACK = 0;
 static bool trackerIsUsed = false;
 
 // rotation mapping
-static bool rotationMappingIsOn = false;
+//static bool rotationMappingIsOn = false;
 static int rotationMappingValue = 0;
 
 //INTERNAL FUNCTIONS BEGIN
@@ -122,15 +122,15 @@ void trackStraightAdvance(int16_t milimeters) {
 }
 
 void set_rotationMappingIsOn(bool status) {
-	if(rotationMappingIsOn && !status) {
+	if((currentModeOfTracker == ROTATION_MAPPING) && !status) {
 		trackerIsUsed = false;
 		left_motor_set_pos(0);
 	}
-	if(!rotationMappingIsOn && status) {
+	if(!(currentModeOfTracker == ROTATION_MAPPING) && status) {
 		trackerIsUsed = true;
 		left_motor_set_pos(0);
 	}
-	rotationMappingIsOn = status;
+	status ? (currentModeOfTracker = ROTATION_MAPPING) : (currentModeOfTracker = TRACK_NOTHING);
 }
 
 int get_rotationMappingValue(void) {

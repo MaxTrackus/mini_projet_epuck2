@@ -15,7 +15,6 @@ typedef enum {
 void move_start(void);
 bool toggle_boolean(bool x);
 void stopMove(void);
-void update_currentModeOfMove(move_mode mode);
 
 void rotate_left(int speed);
 void rotate_right(int speed);
@@ -25,8 +24,8 @@ void move_straight(int speed);
 int motor_speed_protection(int speed);
 void set_movingSpeed(int speed);
 void update_currentModeOfMove(move_mode mode);
-void set_rotationMappingIsOn(bool status);
-int get_rotationMappingValue(void);
+//void set_rotationMappingIsOn(bool status);
+//int get_rotationMappingValue(void);
 void reset_motor_pos(void);
 int32_t get_right_motor_pos(void);
 int32_t get_left_motor_pos(void);
