@@ -9,7 +9,7 @@ typedef enum {
 	MOVE_STRAIGHT,
 	SPIN_ALIGNEMENT, //for the align mode of central unit
 	MOVE_STRAIGHT_CORRECT_ALIGNEMENT, //for the pursuit mode of central unit
-	MOVE_STRAIGHT_WITH_LEFT_MOTOR_CORRECTION,
+	MOVE_STRAIGHT_WITH_CORRECTION,
 } move_mode;
 
 void move_start(void);

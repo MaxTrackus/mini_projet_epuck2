@@ -1,7 +1,7 @@
-#include "ch.h" //usage ?
-#include "hal.h" //usage ?
-#include <chprintf.h> //usage ?
-#include <usbcfg.h> //usage ?
+// #include "ch.h" //usage ?
+// #include "hal.h" //usage ?
+// #include <chprintf.h> //usage ?
+// #include <usbcfg.h> //usage ?
 #include <sensors/proximity.h>
 
 #include <main.h>

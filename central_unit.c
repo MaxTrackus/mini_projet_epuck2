@@ -70,8 +70,10 @@ static THD_FUNCTION(CentralUnit, arg) {
     chRegSetThreadName(__FUNCTION__);
     (void)arg;
 
-    volatile systime_t time;
-    volatile int32_t current_motor_pos;
+    systime_t time;
+    int32_t current_motor_pos;
+    uint8_t prox_for_follow;
+    uint8_t prox_for_exit;
 
     while(1){
         time = chVTGetSystemTime();
@@ -262,19 +264,29 @@ static THD_FUNCTION(CentralUnit, arg) {
         	case FOLLOW: ;
         		set_movingSpeed(FAST_SPEED);
         		int *prox_values = get_prox_value();
-        		
-        		int16_t speedCorrection = (int16_t)(SPEED_CORRECTION_SENSIBILITY_OVER_PROXI * prox_values[PROX_FRONT_LEFT_49]) - (GOAL_PROXI_VALUE * SPEED_CORRECTION_SENSIBILITY_OVER_PROXI);
-        		if((prox_values[PROX_FRONT_LEFT_49] <= GOAL_PROXI_VALUE)) {
+
+        		if (optimizedExitOnLeft) {
+        			prox_for_follow = PROX_FRONT_RIGHT_49;
+        			prox_for_exit = PROX_RIGHT;
+        		} else {
+        			prox_for_follow = PROX_FRONT_LEFT_49;
+        			prox_for_exit = PROX_LEFT;
+        		}
+
+        		int16_t speedCorrection = (int16_t)(SPEED_CORRECTION_SENSIBILITY_OVER_PROXI * prox_values[prox_for_follow]) - (GOAL_PROXI_VALUE * SPEED_CORRECTION_SENSIBILITY_OVER_PROXI);
+        		if((prox_values[prox_for_follow] <= GOAL_PROXI_VALUE)) {
         			speedCorrection = 0;
         		} else {
         			foundWall = true;
         		}
-        		follow_left_wall_with_speed_correction(speedCorrection);
+
+        		(optimizedExitOnLeft) ? follow_left_wall_with_speed_correction(-speedCorrection) : follow_left_wall_with_speed_correction(speedCorrection);
+//        		follow_left_wall_with_speed_correction(speedCorrection);
 
         		bool *prox_status_table = get_prox_activation_status(PROX_DETECTION_THRESHOLD);
-				if ((prox_status_table[PROX_FRONT_LEFT_49] == false) && foundWall) {
+				if ((prox_status_table[prox_for_follow] == false) && foundWall) {
 					update_currentModeOfMove(MOVE_STRAIGHT);
-					if(prox_status_table[PROX_LEFT] == false) {
+					if(prox_status_table[prox_for_exit] == false) {
 						foundWall = false;
 						update_currentModeOfMove(STOP_MOVE);
 						currentMode = EXIT;
@@ -348,7 +360,7 @@ static THD_FUNCTION(CentralUnit, arg) {
         			set_straight_move_in_mm(distanceToTravel);
         			moving = true;
         			reset_motor_pos();
-        			set_movingSpeed(-DEFAULT_SPEED);
+        			set_movingSpeed(-FAST_SPEED);
         			update_currentModeOfMove(MOVE_STRAIGHT);
         		}
         		current_motor_pos = get_right_motor_pos();

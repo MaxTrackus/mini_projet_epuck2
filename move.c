@@ -62,7 +62,7 @@ static THD_FUNCTION(StepTracker, arg) {
 				set_currentRegulatorMode(PURSUIT_CORRECTION);
 				break;
 
-			case MOVE_STRAIGHT_WITH_LEFT_MOTOR_CORRECTION:
+			case MOVE_STRAIGHT_WITH_CORRECTION:
 				left_motor_set_speed(movingSpeed + leftMotorCorrectionSpeed);
 				right_motor_set_speed(movingSpeed - leftMotorCorrectionSpeed);
 				break;
@@ -86,7 +86,7 @@ static THD_FUNCTION(StepTracker, arg) {
 }
 
 void follow_left_wall_with_speed_correction(int16_t leftSpeedCorrection) {
-	currentModeOfMove = MOVE_STRAIGHT_WITH_LEFT_MOTOR_CORRECTION;
+	currentModeOfMove = MOVE_STRAIGHT_WITH_CORRECTION;
 	leftMotorCorrectionSpeed = leftSpeedCorrection;
 }
 
