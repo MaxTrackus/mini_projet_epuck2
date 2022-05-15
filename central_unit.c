@@ -80,11 +80,12 @@ static THD_FUNCTION(CentralUnit, arg) {
         currentMode == ANALYSE ? set_body_led(1) : set_body_led(0);
         currentMode == ALIGN ? set_led(LED1, 1) : set_led(LED1, 0);
         currentMode == PURSUIT ? set_led(LED3, 1) : set_led(LED3, 0);
-        ///////////////////////////////////////////////////////////////////////////////////pas ouf
-        currentMode == MEASURE_TOF ? set_led(LED5, 1) : set_led(LED5, 0);
-        currentMode == MEASURE_SPIN_RIGHT ? set_led(LED5, 1) : set_led(LED5, 0);
-        currentMode == MEASURE_SPIN_LEFT ? set_led(LED5, 1) : set_led(LED5, 0);
-        ///////////////////////////////////////////////////////////////////////////////////pas ouf
+        if((currentMode == MEASURE_TOF) && (currentMode == MEASURE_SPIN_RIGHT) && (currentMode == MEASURE_SPIN_LEFT)) {
+        	set_led(LED5, 1);
+        }
+        else {
+        	set_led(LED5, 0);
+        }
         currentMode == PUSH ? set_led(LED7, 1) : set_led(LED7, 0);
         currentMode == ROTATE_BEFORE_FOLLOW ? set_led(LED1, 1) : set_led(LED1, 0);
         currentMode == FOLLOW ? set_led(LED3, 1) : set_led(LED3, 0);
@@ -149,7 +150,7 @@ static THD_FUNCTION(CentralUnit, arg) {
 				} while (counter < 20);
         		measuredValue = (uint16_t)(measuredValue/20); //VL53L0X_get_dist_mm(); //gets distance to object
         		if(distanceToObject == 0) {
-        			distanceToObject = /*30*/measuredValue;
+        			distanceToObject = measuredValue;
         			stop_tracker();
         			currentMode = MEASURE_SPIN_RIGHT;
         		}
@@ -162,16 +163,17 @@ static THD_FUNCTION(CentralUnit, arg) {
         	case MEASURE_SPIN_RIGHT:
         		chprintf((BaseSequentialStream *)&SD3, "MEASURE_SPIN_RIGHT");
         		///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
-        		if(!get_trackerIsUsed()) {
-					set_movingSpeed(DEFAULT_SPEED);
-					update_currentModeOfMove(SPIN_RIGHT);
-					trackRotationOfDegree((int16_t)(20 + TRACKING_ERROR * 20));
-				}
-				if(get_trackerIsUsed()) {
-					if(get_trackingFinished()) {
-						currentMode = MEASURE_TOF;
-					}
-				}
+//        		if(!get_trackerIsUsed()) {
+//					set_movingSpeed(DEFAULT_SPEED);
+//					update_currentModeOfMove(SPIN_RIGHT);
+//					trackRotationOfDegree((int16_t)(20 + TRACKING_ERROR * 20));
+//				}
+//				if(get_trackerIsUsed()) {
+//					if(get_trackingFinished()) {
+//						currentMode = MEASURE_TOF;
+//					}
+//				}
+        		rotate_degree_and_update_mode(DEFAULT_SPEED, 20, MEASURE_TOF);
 				///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
 				break;
 
@@ -427,6 +429,24 @@ static THD_FUNCTION(CentralUnit, arg) {
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
     }
+}
+
+void rotate_degree_and_update_mode(int speed, int16_t angle, task_mode nextMode) {
+	if(!get_trackerIsUsed()) {
+		set_movingSpeed(speed);
+		if(angle >= 0) {
+			update_currentModeOfMove(SPIN_RIGHT);
+		}
+		else {
+			update_currentModeOfMove(SPIN_LEFT);
+		}
+		trackRotationOfDegree((int16_t)(angle + TRACKING_ERROR * angle));
+	}
+	if(get_trackerIsUsed()) {
+		if(get_trackingFinished()) {
+			currentMode = nextMode;
+		}
+	}
 }
 
 void central_unit_start(void){
