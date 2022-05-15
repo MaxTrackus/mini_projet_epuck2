@@ -77,7 +77,7 @@ static THD_FUNCTION(PiRegulator, arg) {
 					regulationCompletedCounter = 0;
 				}
 
-				if(regulationCompletedCounter == 200) {
+				if(regulationCompletedCounter == NB_INCREMENTS_VALIDATION_ALIGNEMENT) {
 					regulationCompleted = true;
 				}
 				break;

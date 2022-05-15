@@ -29,7 +29,7 @@ uint16_t* get_prox_value(void) {
 	return prox_value;
 }
 
-static THD_WORKING_AREA(waReadProx, 256); //???? How to know the size to allocate ?
+static THD_WORKING_AREA(waReadProx, 256);
 static THD_FUNCTION(ReadProx, arg) {
 
     chRegSetThreadName(__FUNCTION__);

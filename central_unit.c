@@ -166,7 +166,8 @@ static THD_FUNCTION(CentralUnit, arg) {
         		break;
 
 			/**
-			* @brief   Move towards the object and correct its trajectory if the object moves
+			* @brief   Move towards the object and correct its trajectory if the object moves.
+			* 		   Stops when the object image is large enough
 			*/
         	case PURSUIT:
         		set_movingSpeed(DEFAULT_SPEED);
@@ -176,10 +177,10 @@ static THD_FUNCTION(CentralUnit, arg) {
     			} else {
     				lostLineCounter = 0;
     			}
-    			if(lostLineCounter == 100) {
+    			if(lostLineCounter == NB_INCREMENTS_LOST_OBJECT) {
     				currentMode = STOP;
     			}
-    			if(get_lineWidth() > (uint16_t)(400)) {
+    			if(get_lineWidth() > (uint16_t)(LARGE_WIDTH_STOP)) {
     				update_currentModeOfMove(STOP_MOVE);
     				distanceToObject = 0;
     				currentMode = MEASURE_TOF;
@@ -193,11 +194,11 @@ static THD_FUNCTION(CentralUnit, arg) {
         		update_currentModeOfMove(STOP_MOVE);
         		uint8_t counter = 0;
         		do {
-        			measuredValue += VL53L0X_get_dist_mm();
+        			measuredValue += VL53L0X_get_dist_mm() - TOF_OFFSET; //TOF_OFFSET determined by experimentation
 					counter += 1;
 					chThdSleepMilliseconds(100);
-				} while (counter < 20);
-        		measuredValue = (uint16_t)(measuredValue/20); //VL53L0X_get_dist_mm(); //gets distance to object
+				} while (counter < NB_TOF_MESURE_MEAN);
+        		measuredValue = (uint16_t)(measuredValue/NB_TOF_MESURE_MEAN); //VL53L0X_get_dist_mm(); //gets distance to object
         		if(distanceToObject == 0) {
         			distanceToObject = measuredValue;
         			stop_tracker();
@@ -213,14 +214,14 @@ static THD_FUNCTION(CentralUnit, arg) {
 			* @brief   Spin right of 20 degrees and run again the MEASURE_TOF mode
 			*/
         	case MEASURE_SPIN_RIGHT:
-        		rotate_degree_and_update_mode(DEFAULT_SPEED, 20, MEASURE_TOF);
+        		rotate_degree_and_update_mode(DEFAULT_SPEED, TWENTY_DEGREES, MEASURE_TOF);
 				break;
 
 			/**
 			* @brief   Spin back of 20 degrees to be in front of the object again
 			*/
         	case MEASURE_SPIN_LEFT:
-				rotate_degree_and_update_mode(DEFAULT_SPEED, -20, PUSH);
+				rotate_degree_and_update_mode(DEFAULT_SPEED, -TWENTY_DEGREES, PUSH);
         		break;
 
 			/**
@@ -238,10 +239,10 @@ static THD_FUNCTION(CentralUnit, arg) {
 			*/
         	case ROTATE_BEFORE_FOLLOW:
         		if(optimizedExitOnLeft) {
-        			rotate_degree_and_update_mode(DEFAULT_SPEED, -90, FOLLOW);
+        			rotate_degree_and_update_mode(DEFAULT_SPEED, -QUARTER_TURN, FOLLOW);
         		}
         		else {
-					rotate_degree_and_update_mode(DEFAULT_SPEED, 90, FOLLOW);
+					rotate_degree_and_update_mode(DEFAULT_SPEED, QUARTER_TURN, FOLLOW);
         		}
         		break;
 
@@ -285,10 +286,10 @@ static THD_FUNCTION(CentralUnit, arg) {
 			*/
         	case EXIT:
         		if(!optimizedExitOnLeft) {
-					rotate_degree_and_update_mode(DEFAULT_SPEED, -60, PUSH_OUT);
+					rotate_degree_and_update_mode(DEFAULT_SPEED, -SIXTY_DEGREES, PUSH_OUT);
         		}
         		else {
-					rotate_degree_and_update_mode(DEFAULT_SPEED, 60, PUSH_OUT);
+					rotate_degree_and_update_mode(DEFAULT_SPEED, SIXTY_DEGREES, PUSH_OUT);
         		}
         		break;
 
@@ -304,10 +305,10 @@ static THD_FUNCTION(CentralUnit, arg) {
 			*/
         	case HIDE_OBJECT_TURN:
         		if(!optimizedExitOnLeft) {
-					rotate_degree_and_update_mode(DEFAULT_SPEED, -90, HIDE_OBJECT_PUSH);
+					rotate_degree_and_update_mode(DEFAULT_SPEED, -QUARTER_TURN, HIDE_OBJECT_PUSH);
 				}
 				else {
-					rotate_degree_and_update_mode(DEFAULT_SPEED, 90, HIDE_OBJECT_PUSH);
+					rotate_degree_and_update_mode(DEFAULT_SPEED, QUARTER_TURN, HIDE_OBJECT_PUSH);
 				}
         		break;
 
@@ -330,10 +331,10 @@ static THD_FUNCTION(CentralUnit, arg) {
 			*/
 			case RETREAT_TURN:
         		if(!optimizedExitOnLeft) {
-					rotate_degree_and_update_mode(DEFAULT_SPEED, 90, RECENTER);
+					rotate_degree_and_update_mode(DEFAULT_SPEED, QUARTER_TURN, RECENTER);
 				}
 				else {
-					rotate_degree_and_update_mode(DEFAULT_SPEED, -90, RECENTER);
+					rotate_degree_and_update_mode(DEFAULT_SPEED, -QUARTER_TURN, RECENTER);
 				}
         		break;
 
@@ -350,7 +351,7 @@ static THD_FUNCTION(CentralUnit, arg) {
         }
 
 		// force stop mode
-		if((get_selector() == 15)) {
+		if((get_selector() == FIFTEENTH_POS_SELECTOR)) {
 			currentMode = STOP;
 		}
 
