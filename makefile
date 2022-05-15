@@ -3,19 +3,19 @@
 #Simply adapt the lines below to be able to compile
 
 # Define project name here
-PROJECT = CamReg
+PROJECT = TidyUp
 
 #Define path to the e-puck2_main-processor folder
 GLOBAL_PATH = ../lib/e-puck2_main-processor
 
 #Source files to include
 CSRC += ./main.c \
-		./pi_regulator.c \
+		./p_regulator.c \
 		./process_image.c \
 		./move.c \
 		./central_unit.c \
 		./proxi.c \
-		./testing.c \
+		./move_tracker.c \
 
 #Header folders to include
 INCDIR += 
