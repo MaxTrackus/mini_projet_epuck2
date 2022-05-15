@@ -18,17 +18,18 @@
 #define KI 						0.01f	//must not be zero
 
 //central_unit
-#define DEFAULT_SPEED					200 	// [steps/s]
-#define SLOW_SPEED						50 		// [steps/s]
-#define FAST_SPEED						400 	// [steps/s]
-#define	OBJECT_DIAMETER					30 		// [mm]
-#define ARENA_RADIUS					250 	// [mm]
-#define EXIT_DISTANCE					100		// [mm]
-#define	PROX_DETECTION_THRESHOLD		10
+#define DEFAULT_SPEED								200 	// [steps/s]
+#define SLOW_SPEED									50 		// [steps/s]
+#define FAST_SPEED									400 	// [steps/s]
+#define	OBJECT_DIAMETER								30 		// [mm]
+#define ARENA_RADIUS								250 	// [mm]
+#define EXIT_DISTANCE								100		// [mm]
+#define	PROX_DETECTION_THRESHOLD					10
 #define	SPEED_CORRECTION_SENSIBILITY_OVER_PROXI		2
 #define	GOAL_PROXI_VALUE							150
-#define THRESHOLD_STEPS_FOR_OPTIMIZED_EXIT			620 // [steps]
-#define TRACKING_ERROR 					0.05
+#define THRESHOLD_STEPS_FOR_OPTIMIZED_EXIT			620 	// [steps]
+#define TRACKING_ERROR 								0.05
+#define COMPLETE_TURN								360 	// degrees
 
 //move
 #define MAX_MOTOR_SPEED					1100	// [steps/s]
