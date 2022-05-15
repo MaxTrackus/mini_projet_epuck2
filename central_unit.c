@@ -231,8 +231,13 @@ static THD_FUNCTION(CentralUnit, arg) {
 						update_currentModeOfMove(SPIN_LEFT);
 						trackRotationOfDegree((int16_t)(-90 - TRACKING_ERROR * 90));
 					}
-					if(get_trackerIsUsed() && get_trackingFinished()) {
-						currentMode = FOLLOW;
+//					if(get_trackerIsUsed() && get_trackingFinished()) {
+//						currentMode = FOLLOW;
+//					}
+					if(get_trackerIsUsed()) {
+						if(get_trackingFinished()) {
+							currentMode = FOLLOW;
+						}
 					}
 					///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
 //        			/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle begin
@@ -258,8 +263,13 @@ static THD_FUNCTION(CentralUnit, arg) {
 						update_currentModeOfMove(SPIN_RIGHT);
 						trackRotationOfDegree((int16_t)(90 + TRACKING_ERROR * 90));
 					}
-					if(get_trackerIsUsed() && get_trackingFinished()) {
-						currentMode = FOLLOW;
+//					if(get_trackerIsUsed() && get_trackingFinished()) {
+//						currentMode = FOLLOW;
+//					}
+					if(get_trackerIsUsed()) {
+						if(get_trackingFinished()) {
+							currentMode = FOLLOW;
+						}
 					}
 					///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
 //        			/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle begin
@@ -299,8 +309,8 @@ static THD_FUNCTION(CentralUnit, arg) {
         			foundWall = true;
         		}
 
-//        		(optimizedExitOnLeft) ? follow_left_wall_with_speed_correction(-speedCorrection) : follow_left_wall_with_speed_correction(speedCorrection);
-        		follow_left_wall_with_speed_correction(speedCorrection);
+        		(optimizedExitOnLeft) ? follow_left_wall_with_speed_correction(-speedCorrection) : follow_left_wall_with_speed_correction(speedCorrection);
+//        		follow_left_wall_with_speed_correction(speedCorrection);
 
         		bool *prox_status_table = get_prox_activation_status(PROX_DETECTION_THRESHOLD);
 				if ((prox_status_table[prox_for_follow] == false) && foundWall) {
@@ -322,8 +332,13 @@ static THD_FUNCTION(CentralUnit, arg) {
 						update_currentModeOfMove(SPIN_LEFT);
 						trackRotationOfDegree((int16_t)(-60 - TRACKING_ERROR * 60));
 					}
-					if(get_trackerIsUsed() && get_trackingFinished()) {
-						currentMode = PUSH_OUT;
+//					if(get_trackerIsUsed() && get_trackingFinished()) {
+//						currentMode = PUSH_OUT;
+//					}
+					if(get_trackerIsUsed()) {
+						if(get_trackingFinished()) {
+							currentMode = PUSH_OUT;
+						}
 					}
         			///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
 //        			/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle begin
@@ -348,8 +363,13 @@ static THD_FUNCTION(CentralUnit, arg) {
 						update_currentModeOfMove(SPIN_RIGHT);
 						trackRotationOfDegree((int16_t)(60 + TRACKING_ERROR * 60));
 					}
-					if(get_trackerIsUsed() && get_trackingFinished()) {
-						currentMode = PUSH_OUT;
+//					if(get_trackerIsUsed() && get_trackingFinished()) {
+//						currentMode = PUSH_OUT;
+//					}
+					if(get_trackerIsUsed()) {
+						if(get_trackingFinished()) {
+							currentMode = PUSH_OUT;
+						}
 					}
 					///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
 //        			/////////////////////////////////////////////////////////////////////////////function rotate of a certain angle begin
@@ -377,8 +397,13 @@ static THD_FUNCTION(CentralUnit, arg) {
 					update_currentModeOfMove(MOVE_STRAIGHT);
 					trackStraightAdvance((int16_t)(EXIT_DISTANCE + TRACKING_ERROR * EXIT_DISTANCE));
 				}
-				if(get_trackerIsUsed() && get_trackingFinished()) {
-					currentMode = RECENTER;
+//				if(get_trackerIsUsed() && get_trackingFinished()) {
+//					currentMode = RECENTER;
+//				}
+				if(get_trackerIsUsed()) {
+					if(get_trackingFinished()) {
+						currentMode = RECENTER;
+					}
 				}
         		///////////////////////////////////////////////////////////////////////////////////// advance_mm function
 //        		if (distanceToTravel == 0) {
@@ -411,8 +436,13 @@ static THD_FUNCTION(CentralUnit, arg) {
 					update_currentModeOfMove(MOVE_STRAIGHT);
 					trackStraightAdvance((int16_t)(-(ARENA_RADIUS+EXIT_DISTANCE) - TRACKING_ERROR * (ARENA_RADIUS+EXIT_DISTANCE)));
 				}
-				if(get_trackerIsUsed() && get_trackingFinished()) {
-					currentMode = ANALYSE;
+//				if(get_trackerIsUsed() && get_trackingFinished()) {
+//					currentMode = ANALYSE;
+//				}
+				if(get_trackerIsUsed()) {
+					if(get_trackingFinished()) {
+						currentMode = ANALYSE;
+					}
 				}
 //				///////////////////////////////////////////////////////////////////////////////////// advance_mm function
 //        		if (distanceToTravel == 0) {
