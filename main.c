@@ -20,9 +20,9 @@
 #include <central_unit.h>
 #include <process_image.h>
 #include <move.h>
-#include <pi_regulator.h>
 #include <proxi.h>
 #include <move_tracker.h>
+#include <p_regulator.h>
 
 messagebus_t bus;
 MUTEX_DECL(bus_lock);
@@ -82,7 +82,7 @@ int main(void)
     read_prox_start();
 
 	//stars the threads for the pi regulator and the processing of the image
-	pi_regulator_start();
+	p_regulator_start();
 	process_image_start();
 	move_start();
 	central_unit_start();

@@ -12,9 +12,9 @@
 #include <central_unit.h>
 #include <process_image.h>
 #include <move.h>
-#include <pi_regulator.h>
 #include <proxi.h>
 #include <move_tracker.h>
+#include <p_regulator.h>
 
 
 //constants.h please

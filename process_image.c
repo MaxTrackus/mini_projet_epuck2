@@ -98,7 +98,7 @@ uint16_t extract_line_width(uint8_t *buffer){
 		staticFoundLine = false;
 	}else{
 		last_width = width = (end - begin);
-		line_position = (begin + end)/2; //gives the line position.
+		line_position = (begin + end)/2;
 		staticFoundLine = true;
 	}
 
@@ -167,6 +167,7 @@ static THD_FUNCTION(ProcessImage, arg) {
 			distance_cm = PXTOCM/lineWidth;
 		}
 
+		// only for debugging
 		if(send_to_computer){
 			//sends to the computer the image
 //			SendUint8ToComputer(image, IMAGE_BUFFER_SIZE);

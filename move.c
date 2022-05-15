@@ -7,7 +7,7 @@
 #include <motors.h>
 
 #include <move.h>
-#include <pi_regulator.h>
+#include <p_regulator.h>
 #include <proxi.h>
 
 
