@@ -152,6 +152,10 @@ static THD_FUNCTION(CentralUnit, arg) {
         		update_currentModeOfMove(STOP_MOVE);
         		optimizedExitOnLeft = true;
         		stop_tracker();
+        		//from stop to analyseMode
+        		if(get_selector() == 1) {
+        			currentMode = ANALYSE;
+        		}
         		break;
 
         	case ANALYSE:
@@ -159,12 +163,31 @@ static THD_FUNCTION(CentralUnit, arg) {
         		set_rotationMappingIsOn(true);
         		set_movingSpeed(DEFAULT_SPEED);
         		update_currentModeOfMove(SPIN_RIGHT);
+        		//from analyseMode to alignementMode
+        		if(get_staticFoundLine()) {
+					currentMode = ALIGN;
+				}
         		break;
 
         	case ALIGN:
         		chprintf((BaseSequentialStream *)&SD3, "ALIGN");
         		set_movingSpeed(DEFAULT_SPEED);
         		update_currentModeOfMove(SPIN_ALIGNEMENT);
+        		//from alignementMode to analyseMode
+        		if(!get_staticFoundLine()) {
+                	set_rotationMappingIsOn(true);
+        			currentMode = ANALYSE;
+        		}
+        		//from alignementMode to pursuit
+				if(get_regulationCompleted()) {
+					// determine if it is shorter to follow the wall counterclockwise (true) or clockwise (false)
+					if(get_rotationMappingValue() >= THRESHOLD_STEPS_FOR_OPTIMIZED_EXIT) { // must be calibrated, maybe 700 is not the good parameter. must test with the rotation of a certain angle when avalaible
+						optimizedExitOnLeft = false;
+					} else {
+						optimizedExitOnLeft = true;
+					}
+					currentMode = PURSUIT;
+				}
         		break;
 
         	case PURSUIT:
@@ -321,30 +344,31 @@ static THD_FUNCTION(CentralUnit, arg) {
         		break;
         }
 
-		//from idle to analyseMode
-		if((get_selector() == 1) && !(currentMode == ALIGN) && !(currentMode == PURSUIT)) {
-			currentMode = ANALYSE;
-		}
-		//from analyseMode to alignementMode
-		if((currentMode == ANALYSE) && get_staticFoundLine()) {
-			currentMode = ALIGN;
-		}
-		//from alignementMode to analyseMode
-		if((currentMode == ALIGN) && (!(get_staticFoundLine()))) {
-        	set_rotationMappingIsOn(true);
-			currentMode = ANALYSE;
-		}
-		//from alignementMode to pursuit
-		if((currentMode == ALIGN) && (get_regulationCompleted())) {
-			// determine if it is shorter to follow the wall counterclockwise (true) or clockwise (false)
-			if(get_rotationMappingValue() >= THRESHOLD_STEPS_FOR_OPTIMIZED_EXIT) { // must be calibrated, maybe 700 is not the good parameter. must test with the rotation of a certain angle when avalaible
-				optimizedExitOnLeft = false;
-			} else {
-				optimizedExitOnLeft = true;
-			}
-			currentMode = PURSUIT;
-		}
-		//stop and idle
+//		//from idle to analyseMode
+//		if((get_selector() == 1) && !(currentMode == ALIGN) && !(currentMode == PURSUIT)) {
+//			currentMode = ANALYSE;
+//		}
+//		//from analyseMode to alignementMode
+//		if((currentMode == ANALYSE) && get_staticFoundLine()) {
+//			currentMode = ALIGN;
+//		}
+//		//from alignementMode to analyseMode
+//		if((currentMode == ALIGN) && (!(get_staticFoundLine()))) {
+//        	set_rotationMappingIsOn(true);
+//			currentMode = ANALYSE;
+//		}
+//		//from alignementMode to pursuit
+//		if((currentMode == ALIGN) && (get_regulationCompleted())) {
+//			// determine if it is shorter to follow the wall counterclockwise (true) or clockwise (false)
+//			if(get_rotationMappingValue() >= THRESHOLD_STEPS_FOR_OPTIMIZED_EXIT) { // must be calibrated, maybe 700 is not the good parameter. must test with the rotation of a certain angle when avalaible
+//				optimizedExitOnLeft = false;
+//			} else {
+//				optimizedExitOnLeft = true;
+//			}
+//			currentMode = PURSUIT;
+//		}
+
+		// force stop mode
 		if((get_selector() == 15)) {
 			currentMode = STOP;
 		}
