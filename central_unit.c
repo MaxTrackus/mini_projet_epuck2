@@ -90,13 +90,13 @@ void rotate_degree_and_update_mode(int speed, int16_t angle, task_mode nextMode)
 
 void move_straight_mm_and_update_mode(int speed, int16_t distance_mm, task_mode nextMode) {
 	if(!get_trackerIsUsed()) {
-		set_movingSpeed(speed);
 		if(distance_mm >= 0) {
-			update_currentModeOfMove(MOVE_STRAIGHT);
+			set_movingSpeed(speed);
 		}
 		else {
-			update_currentModeOfMove(-MOVE_STRAIGHT);
+			set_movingSpeed(-speed);
 		}
+		update_currentModeOfMove(MOVE_STRAIGHT);
 		trackStraightAdvance((int16_t)(distance_mm - TRACKING_ERROR * distance_mm));
 	}
 	if(get_trackerIsUsed()) {
