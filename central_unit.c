@@ -49,7 +49,7 @@
 #define TRACKING_ERROR 					0.05
 
 // general purpose
-static volatile task_mode currentMode = STOP; // laisse à STOP stp.       MaxTrackus
+static /*volatile */task_mode currentMode = STOP; // laisse à STOP stp.       MaxTrackus
 static bool optimizedExitOnLeft = true;
 
 // pursuit mode
@@ -62,6 +62,25 @@ static uint16_t distanceToObject = 0;
 // follow mode
 static bool foundWall = false;
 
+// INTERNAL FUNCTIONS BEGINS
+void rotate_degree_and_update_mode(int speed, int16_t angle, task_mode nextMode) {
+	if(!get_trackerIsUsed()) {
+		set_movingSpeed(speed);
+		if(angle >= 0) {
+			update_currentModeOfMove(SPIN_RIGHT);
+		}
+		else {
+			update_currentModeOfMove(SPIN_LEFT);
+		}
+		trackRotationOfDegree((int16_t)(angle + TRACKING_ERROR * angle));
+	}
+	if(get_trackerIsUsed()) {
+		if(get_trackingFinished()) {
+			currentMode = nextMode;
+		}
+	}
+}
+// INTERNAL FUNCTIONS ENDS
 
 static THD_WORKING_AREA(waCentralUnit, 1024);
 static THD_FUNCTION(CentralUnit, arg) {
@@ -161,42 +180,16 @@ static THD_FUNCTION(CentralUnit, arg) {
         		break;
 
         	case MEASURE_SPIN_RIGHT:
-        		chprintf((BaseSequentialStream *)&SD3, "MEASURE_SPIN_RIGHT");
-        		///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
-//        		if(!get_trackerIsUsed()) {
-//					set_movingSpeed(DEFAULT_SPEED);
-//					update_currentModeOfMove(SPIN_RIGHT);
-//					trackRotationOfDegree((int16_t)(20 + TRACKING_ERROR * 20));
-//				}
-//				if(get_trackerIsUsed()) {
-//					if(get_trackingFinished()) {
-//						currentMode = MEASURE_TOF;
-//					}
-//				}
         		rotate_degree_and_update_mode(DEFAULT_SPEED, 20, MEASURE_TOF);
-				///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
 				break;
 
         	case MEASURE_SPIN_LEFT:
-        		chprintf((BaseSequentialStream *)&SD3, "MEASURE_SPIN_LEFT");
-        		///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
-        		if(!get_trackerIsUsed()) {
-					set_movingSpeed(DEFAULT_SPEED);
-					update_currentModeOfMove(SPIN_LEFT);
-					trackRotationOfDegree((int16_t)(-20 - TRACKING_ERROR * 20));
-				}
-				if(get_trackerIsUsed()) {
-					if(get_trackingFinished()) {
-						currentMode = PUSH;
-					}
-				}
-				///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
+				rotate_degree_and_update_mode(DEFAULT_SPEED, -20, PUSH);
         		break;
 
-        	case PUSH:
-        		chprintf((BaseSequentialStream *)&SD3, "PUSH");
+        	case PUSH: ;
         		//measuredVale is the distance to the wall
-        		volatile int distance_travel = measuredValue - distanceToObject - OBJECT_DIAMETER;
+        		/*volatile */int distance_travel = measuredValue - distanceToObject - OBJECT_DIAMETER;
         		distanceToObject = 0;
         		///////////////////////////////////////////////////////////////////////////////////// advance_mm function
         		if(!get_trackerIsUsed()) {
@@ -213,39 +206,15 @@ static THD_FUNCTION(CentralUnit, arg) {
         		break;
 
         	case ROTATE_BEFORE_FOLLOW:
-        		chprintf((BaseSequentialStream *)&SD3, "ROTATE_BEFORE_FOLLOW");
         		if(optimizedExitOnLeft) {
-        			///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
-        			if(!get_trackerIsUsed()) {
-						set_movingSpeed(DEFAULT_SPEED);
-						update_currentModeOfMove(SPIN_LEFT);
-						trackRotationOfDegree((int16_t)(-90 - TRACKING_ERROR * 90));
-					}
-					if(get_trackerIsUsed()) {
-						if(get_trackingFinished()) {
-							currentMode = FOLLOW;
-						}
-					}
-					///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
+        			rotate_degree_and_update_mode(DEFAULT_SPEED, -90, FOLLOW);
         		}
         		else {
-        			///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
-					if(!get_trackerIsUsed()) {
-						set_movingSpeed(DEFAULT_SPEED);
-						update_currentModeOfMove(SPIN_RIGHT);
-						trackRotationOfDegree((int16_t)(90 + TRACKING_ERROR * 90));
-					}
-					if(get_trackerIsUsed()) {
-						if(get_trackingFinished()) {
-							currentMode = FOLLOW;
-						}
-					}
-					///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
+					rotate_degree_and_update_mode(DEFAULT_SPEED, 90, FOLLOW);
         		}
         		break;
 
         	case FOLLOW: ;
-        		chprintf((BaseSequentialStream *)&SD3, "FOLLOW");
         		set_movingSpeed(FAST_SPEED);
         		uint16_t *prox_values = get_prox_value();
 
@@ -278,39 +247,15 @@ static THD_FUNCTION(CentralUnit, arg) {
         		break;
 
         	case EXIT:
-        		chprintf((BaseSequentialStream *)&SD3, "EXIT");
         		if(!optimizedExitOnLeft) {
-        			///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
-        			if(!get_trackerIsUsed()) {
-						set_movingSpeed(DEFAULT_SPEED);
-						update_currentModeOfMove(SPIN_LEFT);
-						trackRotationOfDegree((int16_t)(-60 - TRACKING_ERROR * 60));
-					}
-					if(get_trackerIsUsed()) {
-						if(get_trackingFinished()) {
-							currentMode = PUSH_OUT;
-						}
-					}
-        			///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
+					rotate_degree_and_update_mode(DEFAULT_SPEED, -60, PUSH_OUT);
         		}
         		else {
-        			///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
-					if(!get_trackerIsUsed()) {
-						set_movingSpeed(DEFAULT_SPEED);
-						update_currentModeOfMove(SPIN_RIGHT);
-						trackRotationOfDegree((int16_t)(60 + TRACKING_ERROR * 60));
-					}
-					if(get_trackerIsUsed()) {
-						if(get_trackingFinished()) {
-							currentMode = PUSH_OUT;
-						}
-					}
-					///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
+					rotate_degree_and_update_mode(DEFAULT_SPEED, 60, PUSH_OUT);
         		}
         		break;
 
         	case PUSH_OUT:
-        		chprintf((BaseSequentialStream *)&SD3, "PUSH_OUT");
         		///////////////////////////////////////////////////////////////////////////////////// advance_mm function
         		if(!get_trackerIsUsed()) {
 					set_movingSpeed(DEFAULT_SPEED);
@@ -326,10 +271,9 @@ static THD_FUNCTION(CentralUnit, arg) {
         		break;
 
         	case RECENTER:
-        		chprintf((BaseSequentialStream *)&SD3, "RECENTER");
         		///////////////////////////////////////////////////////////////////////////////////// advance_mm function
 				if(!get_trackerIsUsed()) {
-					set_movingSpeed(-DEFAULT_SPEED);
+					set_movingSpeed(-FAST_SPEED);
 					update_currentModeOfMove(MOVE_STRAIGHT);
 					trackStraightAdvance((int16_t)(-(ARENA_RADIUS+EXIT_DISTANCE) - TRACKING_ERROR * (ARENA_RADIUS+EXIT_DISTANCE)));
 				}
@@ -344,7 +288,6 @@ static THD_FUNCTION(CentralUnit, arg) {
 
         		// if spin left, angle degree must be negative. if spin right angle degree must be positiv
         	case ROTATE_TRACKER_TEST:
-        		chprintf((BaseSequentialStream *)&SD3, "ROTATE_TRACKER_TEST");
 				if(!get_trackerIsUsed()) {
 					set_movingSpeed(DEFAULT_SPEED);
 					update_currentModeOfMove(SPIN_RIGHT);
@@ -357,7 +300,6 @@ static THD_FUNCTION(CentralUnit, arg) {
 
 				// if move forward, speed and mm must be positives, if move backwards speed and distance must be negatives
 			case STRAIGHT_TRACKER_TEST:
-				chprintf((BaseSequentialStream *)&SD3, "STRAIGHT_TRACKER_TEST");
 				if(!get_trackerIsUsed()) {
 					set_movingSpeed(-DEFAULT_SPEED);
 					update_currentModeOfMove(MOVE_STRAIGHT);
@@ -369,7 +311,6 @@ static THD_FUNCTION(CentralUnit, arg) {
 				break;
 
 			case TEST_ROTATION_MAPPING:
-				chprintf((BaseSequentialStream *)&SD3, "TEST_ROTATION_MAPPING");
 				set_rotationMappingIsOn(true);
 				update_currentModeOfMove(SPIN_RIGHT);
 				//determine if it is shorter to follow the wall counterclockwise (true) or clockwise (false)
@@ -429,24 +370,6 @@ static THD_FUNCTION(CentralUnit, arg) {
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
     }
-}
-
-void rotate_degree_and_update_mode(int speed, int16_t angle, task_mode nextMode) {
-	if(!get_trackerIsUsed()) {
-		set_movingSpeed(speed);
-		if(angle >= 0) {
-			update_currentModeOfMove(SPIN_RIGHT);
-		}
-		else {
-			update_currentModeOfMove(SPIN_LEFT);
-		}
-		trackRotationOfDegree((int16_t)(angle + TRACKING_ERROR * angle));
-	}
-	if(get_trackerIsUsed()) {
-		if(get_trackingFinished()) {
-			currentMode = nextMode;
-		}
-	}
 }
 
 void central_unit_start(void){
