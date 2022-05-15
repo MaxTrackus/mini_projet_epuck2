@@ -22,6 +22,7 @@
 #include <move.h>
 #include <pi_regulator.h>
 #include <proxi.h>
+#include <move_tracker.h>
 
 messagebus_t bus;
 MUTEX_DECL(bus_lock);
