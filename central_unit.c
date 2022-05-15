@@ -16,6 +16,8 @@
 #include <proxi.h>
 #include <move_tracker.h>
 
+
+//constants.h please
 #define DEFAULT_SPEED					200 	// [steps/s]
 #define SLOW_SPEED						50 		// [steps/s]
 #define FAST_SPEED						400 	// [steps/s]
@@ -48,8 +50,10 @@
 // move_tracker
 #define TRACKING_ERROR 					0.05
 
+
+
 // general purpose
-static /*volatile */task_mode currentMode = STOP; // laisse à STOP stp.       MaxTrackus
+static task_mode currentMode = STOP; // laisse à STOP stp.       MaxTrackus
 static bool optimizedExitOnLeft = true;
 
 // pursuit mode
@@ -62,7 +66,10 @@ static uint16_t distanceToObject = 0;
 // follow mode
 static bool foundWall = false;
 
-// INTERNAL FUNCTIONS BEGINS
+
+
+/***************************INTERNAL FUNCTIONS************************************/
+
 void rotate_degree_and_update_mode(int speed, int16_t angle, task_mode nextMode) {
 	if(!get_trackerIsUsed()) {
 		set_movingSpeed(speed);
@@ -90,7 +97,6 @@ void move_straight_mm_and_update_mode(int speed, int16_t distance_mm, task_mode 
 		else {
 			update_currentModeOfMove(-MOVE_STRAIGHT);
 		}
-//		update_currentModeOfMove(MOVE_STRAIGHT);
 		trackStraightAdvance((int16_t)(distance_mm - TRACKING_ERROR * distance_mm));
 	}
 	if(get_trackerIsUsed()) {
@@ -99,8 +105,12 @@ void move_straight_mm_and_update_mode(int speed, int16_t distance_mm, task_mode 
 		}
 	}
 }
-// INTERNAL FUNCTIONS ENDS
 
+/*************************END INTERNAL FUNCTIONS**********************************/
+
+/**
+* @brief   Thread which gather the sensors measurements and updates the modes of move.c accordingly
+*/
 static THD_WORKING_AREA(waCentralUnit, 1024);
 static THD_FUNCTION(CentralUnit, arg) {
 
@@ -208,20 +218,8 @@ static THD_FUNCTION(CentralUnit, arg) {
 
         	case PUSH: ;
         		//measuredVale is the distance to the wall
-        		/*volatile */int distance_travel = measuredValue - distanceToObject - OBJECT_DIAMETER;
+        		int distance_travel = measuredValue - distanceToObject - OBJECT_DIAMETER;
         		distanceToObject = 0;
-//        		///////////////////////////////////////////////////////////////////////////////////// advance_mm function
-//        		if(!get_trackerIsUsed()) {
-//					set_movingSpeed(DEFAULT_SPEED);
-//					update_currentModeOfMove(MOVE_STRAIGHT);
-//					trackStraightAdvance((int16_t)(distance_travel - TRACKING_ERROR * distance_travel));
-//				}
-//        		if(get_trackerIsUsed()) {
-//					if(get_trackingFinished()) {
-//						currentMode = ROTATE_BEFORE_FOLLOW;
-//					}
-//				}
-//				///////////////////////////////////////////////////////////////////////////////////// advance_mm function
         		move_straight_mm_and_update_mode(DEFAULT_SPEED, distance_travel, ROTATE_BEFORE_FOLLOW);
         		break;
 
@@ -276,34 +274,10 @@ static THD_FUNCTION(CentralUnit, arg) {
         		break;
 
         	case PUSH_OUT:
-//        		///////////////////////////////////////////////////////////////////////////////////// advance_mm function
-//        		if(!get_trackerIsUsed()) {
-//					set_movingSpeed(DEFAULT_SPEED);
-//					update_currentModeOfMove(MOVE_STRAIGHT);
-//					trackStraightAdvance((int16_t)(EXIT_DISTANCE + TRACKING_ERROR * EXIT_DISTANCE));
-//				}
-//				if(get_trackerIsUsed()) {
-//					if(get_trackingFinished()) {
-//						currentMode = RECENTER;
-//					}
-//				}
-//        		///////////////////////////////////////////////////////////////////////////////////// advance_mm function
 				move_straight_mm_and_update_mode(DEFAULT_SPEED, EXIT_DISTANCE, RECENTER);
         		break;
 
         	case RECENTER:
-//        		///////////////////////////////////////////////////////////////////////////////////// advance_mm function
-//				if(!get_trackerIsUsed()) {
-//					set_movingSpeed(-FAST_SPEED);
-//					update_currentModeOfMove(MOVE_STRAIGHT);
-//					trackStraightAdvance((int16_t)(-(ARENA_RADIUS+EXIT_DISTANCE) - TRACKING_ERROR * (ARENA_RADIUS+EXIT_DISTANCE)));
-//				}
-//				if(get_trackerIsUsed()) {
-//					if(get_trackingFinished()) {
-//						currentMode = ANALYSE;
-//					}
-//				}
-//				///////////////////////////////////////////////////////////////////////////////////// advance_mm function
 				move_straight_mm_and_update_mode(FAST_SPEED, -(ARENA_RADIUS+EXIT_DISTANCE), ANALYSE);
         		break;
 
@@ -393,6 +367,7 @@ static THD_FUNCTION(CentralUnit, arg) {
     }
 }
 
+// EXTERNAL FUNCTIONS
 void central_unit_start(void){
 	chThdCreateStatic(waCentralUnit, sizeof(waCentralUnit), NORMALPRIO, CentralUnit, NULL);
 }
