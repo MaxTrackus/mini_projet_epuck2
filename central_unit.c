@@ -80,6 +80,25 @@ void rotate_degree_and_update_mode(int speed, int16_t angle, task_mode nextMode)
 		}
 	}
 }
+
+void move_straight_mm_and_update_mode(int speed, int16_t distance_mm, task_mode nextMode) {
+	if(!get_trackerIsUsed()) {
+		set_movingSpeed(speed);
+		if(distance_mm >= 0) {
+			update_currentModeOfMove(MOVE_STRAIGHT);
+		}
+		else {
+			update_currentModeOfMove(-MOVE_STRAIGHT);
+		}
+//		update_currentModeOfMove(MOVE_STRAIGHT);
+		trackStraightAdvance((int16_t)(distance_mm - TRACKING_ERROR * distance_mm));
+	}
+	if(get_trackerIsUsed()) {
+		if(get_trackingFinished()) {
+			currentMode = nextMode;
+		}
+	}
+}
 // INTERNAL FUNCTIONS ENDS
 
 static THD_WORKING_AREA(waCentralUnit, 1024);
@@ -191,18 +210,19 @@ static THD_FUNCTION(CentralUnit, arg) {
         		//measuredVale is the distance to the wall
         		/*volatile */int distance_travel = measuredValue - distanceToObject - OBJECT_DIAMETER;
         		distanceToObject = 0;
-        		///////////////////////////////////////////////////////////////////////////////////// advance_mm function
-        		if(!get_trackerIsUsed()) {
-					set_movingSpeed(DEFAULT_SPEED);
-					update_currentModeOfMove(MOVE_STRAIGHT);
-					trackStraightAdvance((int16_t)(distance_travel - TRACKING_ERROR * distance_travel));
-				}
-        		if(get_trackerIsUsed()) {
-					if(get_trackingFinished()) {
-						currentMode = ROTATE_BEFORE_FOLLOW;
-					}
-				}
-				///////////////////////////////////////////////////////////////////////////////////// advance_mm function
+//        		///////////////////////////////////////////////////////////////////////////////////// advance_mm function
+//        		if(!get_trackerIsUsed()) {
+//					set_movingSpeed(DEFAULT_SPEED);
+//					update_currentModeOfMove(MOVE_STRAIGHT);
+//					trackStraightAdvance((int16_t)(distance_travel - TRACKING_ERROR * distance_travel));
+//				}
+//        		if(get_trackerIsUsed()) {
+//					if(get_trackingFinished()) {
+//						currentMode = ROTATE_BEFORE_FOLLOW;
+//					}
+//				}
+//				///////////////////////////////////////////////////////////////////////////////////// advance_mm function
+        		move_straight_mm_and_update_mode(DEFAULT_SPEED, distance_travel, ROTATE_BEFORE_FOLLOW);
         		break;
 
         	case ROTATE_BEFORE_FOLLOW:
@@ -256,34 +276,35 @@ static THD_FUNCTION(CentralUnit, arg) {
         		break;
 
         	case PUSH_OUT:
-        		///////////////////////////////////////////////////////////////////////////////////// advance_mm function
-        		if(!get_trackerIsUsed()) {
-					set_movingSpeed(DEFAULT_SPEED);
-					update_currentModeOfMove(MOVE_STRAIGHT);
-					trackStraightAdvance((int16_t)(EXIT_DISTANCE + TRACKING_ERROR * EXIT_DISTANCE));
-				}
-				if(get_trackerIsUsed()) {
-					if(get_trackingFinished()) {
-						currentMode = RECENTER;
-					}
-				}
-        		///////////////////////////////////////////////////////////////////////////////////// advance_mm function
+//        		///////////////////////////////////////////////////////////////////////////////////// advance_mm function
+//        		if(!get_trackerIsUsed()) {
+//					set_movingSpeed(DEFAULT_SPEED);
+//					update_currentModeOfMove(MOVE_STRAIGHT);
+//					trackStraightAdvance((int16_t)(EXIT_DISTANCE + TRACKING_ERROR * EXIT_DISTANCE));
+//				}
+//				if(get_trackerIsUsed()) {
+//					if(get_trackingFinished()) {
+//						currentMode = RECENTER;
+//					}
+//				}
+//        		///////////////////////////////////////////////////////////////////////////////////// advance_mm function
+				move_straight_mm_and_update_mode(DEFAULT_SPEED, EXIT_DISTANCE, RECENTER);
         		break;
 
         	case RECENTER:
-        		///////////////////////////////////////////////////////////////////////////////////// advance_mm function
-				if(!get_trackerIsUsed()) {
-					set_movingSpeed(-FAST_SPEED);
-					update_currentModeOfMove(MOVE_STRAIGHT);
-					trackStraightAdvance((int16_t)(-(ARENA_RADIUS+EXIT_DISTANCE) - TRACKING_ERROR * (ARENA_RADIUS+EXIT_DISTANCE)));
-				}
-				if(get_trackerIsUsed()) {
-					if(get_trackingFinished()) {
-						currentMode = ANALYSE;
-					}
-				}
-				///////////////////////////////////////////////////////////////////////////////////// advance_mm function
-
+//        		///////////////////////////////////////////////////////////////////////////////////// advance_mm function
+//				if(!get_trackerIsUsed()) {
+//					set_movingSpeed(-FAST_SPEED);
+//					update_currentModeOfMove(MOVE_STRAIGHT);
+//					trackStraightAdvance((int16_t)(-(ARENA_RADIUS+EXIT_DISTANCE) - TRACKING_ERROR * (ARENA_RADIUS+EXIT_DISTANCE)));
+//				}
+//				if(get_trackerIsUsed()) {
+//					if(get_trackingFinished()) {
+//						currentMode = ANALYSE;
+//					}
+//				}
+//				///////////////////////////////////////////////////////////////////////////////////// advance_mm function
+				move_straight_mm_and_update_mode(FAST_SPEED, -(ARENA_RADIUS+EXIT_DISTANCE), ANALYSE);
         		break;
 
         		// if spin left, angle degree must be negative. if spin right angle degree must be positiv
