@@ -7,12 +7,9 @@
 #include <motors.h>
 
 #include <move_tracker.h>
+#include <constants.h>
 
-//constantes.h pleases
-#define DEG2RAD						M_PI/180
-#define TRACK_WIDTH					51 //distance between the wheels [mm]
-#define NSTEP_ONE_TURN				1000 // [steps]
-#define WHEEL_PERIMETER				130 // [mm]
+
 
 static bool trackingFinished = true;
 static move_tracker_mode currentModeOfTracker = TRACK_NOTHING;

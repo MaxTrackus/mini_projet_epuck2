@@ -7,15 +7,9 @@
 #include <motors.h>
 
 #include <move.h>
+#include <constants.h>
 #include <p_regulator.h>
 #include <proxi.h>
-
-
-
-// constantes.h please
-#define MAX_MOTOR_SPEED		1100 // [steps/s]
-
-#define MAX_SPIN_ANGLE		360
 
 
 

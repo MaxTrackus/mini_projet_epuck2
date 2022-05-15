@@ -4,8 +4,10 @@
 #include <usbcfg.h>
 #include <chprintf.h>
 
+#include <motors.h>
+
 #include <p_regulator.h>
-#include <main.h> // pour les defines mais c'est tout pas censé normalement
+#include <constants.h>
 #include <process_image.h>
 
 static regulation_mode currentRegulatorMode = NOTHING;
@@ -29,8 +31,6 @@ int16_t p_regulator(float mesuredValue, float goal){
 	float error = 0;
 	float speed = 0;
 
-//	static volatile float sum_error = 0;
-
 	error = mesuredValue - goal;
 
 	//disables the PI regulator if the error is to small
@@ -38,15 +38,6 @@ int16_t p_regulator(float mesuredValue, float goal){
 	if(fabs(error) < ERROR_THRESHOLD){
 		return 0;
 	}
-
-//	sum_error += error;
-//
-//	//we set a maximum and a minimum for the sum to avoid an uncontrolled growth
-//	if(sum_error > MAX_SUM_ERROR){
-//		sum_error = MAX_SUM_ERROR;
-//	}else if(sum_error < -MAX_SUM_ERROR){
-//		sum_error = -MAX_SUM_ERROR;
-//	}
 
 	speed = KP * error /*+ KI * sum_error*/;
 

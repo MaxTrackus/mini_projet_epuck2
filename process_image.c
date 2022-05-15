@@ -5,8 +5,9 @@
 
 #include <camera/po8030.h>
 
-#include <main.h> // pour les defines mais c'est tout pas censé normalement
 #include <process_image.h>
+#include <constants.h>
+
 
 
 static float distance_cm = 0;

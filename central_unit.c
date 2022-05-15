@@ -10,45 +10,12 @@
 #include <epuck1x/utility/utility.h> //used for wait function
 
 #include <central_unit.h>
+#include <constants.h>
 #include <process_image.h>
 #include <move.h>
 #include <proxi.h>
 #include <move_tracker.h>
 #include <p_regulator.h>
-
-
-//constants.h please
-#define DEFAULT_SPEED					200 	// [steps/s]
-#define SLOW_SPEED						50 		// [steps/s]
-#define FAST_SPEED						400 	// [steps/s]
-
-#define	OBJECT_DIAMETER					30 		// [mm]	
-#define ERROR_MARGIN					75 		// [mm]
-#define WALL_CLEARANCE					10 		// [mm]
-#define SEC2MSEC						1000
-#define MAX_MOTOR_SPEED					1100	// [steps/s]
-#define NSTEP_ONE_TURN      			1000	// number of step for 1 turn of the motor
-#define WHEEL_PERIMETER     			130		// [mm]
-
-#define ARENA_RADIUS					250 	// [mm]
-#define EXIT_DISTANCE					100		// [mm]
-
-#define QUARTER_TURN					90
-#define MOTOR_STEP_TO_DEGREES			360 //find other name maybe
-#define	PROX_DETECTION_THRESHOLD		10
-
-// follow mode
-#define	SPEED_CORRECTION_SENSIBILITY_OVER_PROXI		2
-#define	GOAL_PROXI_VALUE							150
-
-// rotate_before_follow mode
-#define DEG2RAD										M_PI/180
-#define TRACK_WIDTH									51 //distance between the wheels [mm]
-#define THRESHOLD_ANGLE_FOR_OPTIMIZED_EXIT			180 // [deg]
-#define THRESHOLD_STEPS_FOR_OPTIMIZED_EXIT			620 // [steps]       (uint16_t)(THRESHOLD_ANGLE_FOR_OPTIMIZED_EXIT * DEG2RAD * TRACK_WIDTH * NSTEP_ONE_TURN) / (2*WHEEL_PERIMETER)   ?
-
-// move_tracker
-#define TRACKING_ERROR 					0.05
 
 
 

@@ -3,8 +3,9 @@
 #include <sensors/proximity.h>
 
 #include <proxi.h>
+#include <constants.h>
 
-#define NB_PROX_SENSORS		8
+
 
 static uint16_t prox_value[NB_PROX_SENSORS];
 
