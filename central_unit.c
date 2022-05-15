@@ -144,6 +144,10 @@ static THD_FUNCTION(CentralUnit, arg) {
         	case ALIGN:
         		set_movingSpeed(DEFAULT_SPEED);
         		update_currentModeOfMove(SPIN_ALIGNEMENT);
+        		// if the robot made a complete turn, stop
+        		if(get_rotationMappingValue() >= 360) {
+        			currentMode = STOP;
+        		}
         		//from alignementMode to analyseMode
         		if(!get_staticFoundLine()) {
                 	set_rotationMappingIsOn(true);
@@ -292,9 +296,46 @@ static THD_FUNCTION(CentralUnit, arg) {
 			* @brief   Push the object out of the arena
 			*/
         	case PUSH_OUT:
-				move_straight_mm_and_update_mode(DEFAULT_SPEED, EXIT_DISTANCE, RECENTER);
+				move_straight_mm_and_update_mode(DEFAULT_SPEED, EXIT_DISTANCE, HIDE_OBJECT_TURN);
         		break;
 
+			/**
+			* @brief   Turn behind the arena to hide the object
+			*/
+        	case HIDE_OBJECT_TURN:
+        		if(!optimizedExitOnLeft) {
+					rotate_degree_and_update_mode(DEFAULT_SPEED, -90, HIDE_OBJECT_PUSH);
+				}
+				else {
+					rotate_degree_and_update_mode(DEFAULT_SPEED, 90, HIDE_OBJECT_PUSH);
+				}
+        		break;
+
+			/**
+			* @brief   Push the object behind arena
+			*/
+			case HIDE_OBJECT_PUSH:
+				move_straight_mm_and_update_mode(DEFAULT_SPEED, EXIT_DISTANCE, RETREAT_BACK);
+        		break;
+
+			/**
+			* @brief   Move backward towards the exit
+			*/
+			case RETREAT_BACK:
+				move_straight_mm_and_update_mode(DEFAULT_SPEED, -EXIT_DISTANCE, RETREAT_TURN);
+        		break;
+
+			/**
+			* @brief   Turn again in the opposite direction to be align to the exit
+			*/
+			case RETREAT_TURN:
+        		if(!optimizedExitOnLeft) {
+					rotate_degree_and_update_mode(DEFAULT_SPEED, 90, RECENTER);
+				}
+				else {
+					rotate_degree_and_update_mode(DEFAULT_SPEED, -90, RECENTER);
+				}
+        		break;
 			/**
 			* @brief   Retreat back to the center of the arena
 			*/
