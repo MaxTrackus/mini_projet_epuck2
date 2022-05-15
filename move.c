@@ -10,16 +10,24 @@
 #include <pi_regulator.h>
 #include <proxi.h>
 
-#define MAX_SPIN_ANGLE		360
+
+
+// constantes.h please
 #define MAX_MOTOR_SPEED		1100 // [steps/s]
 
-// global use
+#define MAX_SPIN_ANGLE		360
+
+
+
 static move_mode currentModeOfMove = STOP_MOVE;
 static int movingSpeed = 0;
 
 // follow mode
 static int16_t leftMotorCorrectionSpeed = 0;
 
+/***************************INTERNAL FUNCTIONS************************************/
+
+/*************************END INTERNAL FUNCTIONS**********************************/
 
 static THD_WORKING_AREA(waStepTracker, 256);
 static THD_FUNCTION(StepTracker, arg) {
@@ -49,14 +57,23 @@ static THD_FUNCTION(StepTracker, arg) {
 				move_straight(movingSpeed);
 				break;
 
+			/**
+			* @brief   Made for the align mode of central unit
+			*/
 			case SPIN_ALIGNEMENT:
 				set_currentRegulatorMode(ALIGN_ROTATION);
 				break;
 
+			/**
+			* @brief   Made for the pursuit mode of central unit
+			*/
 			case MOVE_STRAIGHT_CORRECT_ALIGNEMENT:
 				set_currentRegulatorMode(PURSUIT_CORRECTION);
 				break;
 
+			/**
+			* @brief   Made for the follow mode of central unit
+			*/
 			case MOVE_STRAIGHT_WITH_CORRECTION:
 				left_motor_set_speed(movingSpeed + leftMotorCorrectionSpeed);
 				right_motor_set_speed(movingSpeed - leftMotorCorrectionSpeed);
@@ -74,11 +91,6 @@ static THD_FUNCTION(StepTracker, arg) {
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
     }
-}
-
-void follow_left_wall_with_speed_correction(int16_t leftSpeedCorrection) {
-	currentModeOfMove = MOVE_STRAIGHT_WITH_CORRECTION;
-	leftMotorCorrectionSpeed = leftSpeedCorrection;
 }
 
 void set_movingSpeed(int speed) {
@@ -163,3 +175,12 @@ void avoid_obstacles(int speed, int prox_detection_threshold) {
 		left_motor_set_speed(speed);
 	}
 }
+
+/****************************PUBLIC FUNCTIONS*************************************/
+
+void follow_left_wall_with_speed_correction(int16_t leftSpeedCorrection) {
+	currentModeOfMove = MOVE_STRAIGHT_WITH_CORRECTION;
+	leftMotorCorrectionSpeed = leftSpeedCorrection;
+}
+
+/**************************END PUBLIC FUNCTIONS***********************************/

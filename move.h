@@ -4,15 +4,19 @@
 //List of the different mode in the move.c file, i.e the different configurations of the motors
 typedef enum {
 	STOP_MOVE,
-	SPIN_RIGHT, //for the analyse mode of central unit
+	SPIN_RIGHT,
 	SPIN_LEFT,
 	MOVE_STRAIGHT,
-	SPIN_ALIGNEMENT, //for the align mode of central unit
-	MOVE_STRAIGHT_CORRECT_ALIGNEMENT, //for the pursuit mode of central unit
+	SPIN_ALIGNEMENT,
+	MOVE_STRAIGHT_CORRECT_ALIGNEMENT,
 	MOVE_STRAIGHT_WITH_CORRECTION,
 } move_mode;
 
+/**
+* @brief   Init a thread which provides the moves needed by central_unit
+*/
 void move_start(void);
+
 bool toggle_boolean(bool x);
 void stopMove(void);
 
