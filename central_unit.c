@@ -70,6 +70,7 @@ static bool foundWall = false;
 
 /***************************INTERNAL FUNCTIONS************************************/
 
+// if spin left, angle must be negative. If spin right, angle must be positive
 void rotate_degree_and_update_mode(int speed, int16_t angle, task_mode nextMode) {
 	if(!get_trackerIsUsed()) {
 		set_movingSpeed(speed);
@@ -88,6 +89,7 @@ void rotate_degree_and_update_mode(int speed, int16_t angle, task_mode nextMode)
 	}
 }
 
+// if move forward, speed and distance_mm must be positives, if move backwards speed and distance must be negatives
 void move_straight_mm_and_update_mode(int speed, int16_t distance_mm, task_mode nextMode) {
 	if(!get_trackerIsUsed()) {
 		if(distance_mm >= 0) {
@@ -143,11 +145,9 @@ static THD_FUNCTION(CentralUnit, arg) {
 
         switch(currentMode) {
         	case IDLE:
-        		chprintf((BaseSequentialStream *)&SD3, "IDLE");
         		break;
 
         	case STOP:
-        		chprintf((BaseSequentialStream *)&SD3, "STOP");
         		set_movingSpeed(DEFAULT_SPEED);
         		update_currentModeOfMove(STOP_MOVE);
         		optimizedExitOnLeft = true;
@@ -158,8 +158,10 @@ static THD_FUNCTION(CentralUnit, arg) {
         		}
         		break;
 
+			/**
+			* @brief   Look for the object by spinning infinitely to the right
+			*/
         	case ANALYSE:
-        		chprintf((BaseSequentialStream *)&SD3, "ANALYSE");
         		set_rotationMappingIsOn(true);
         		set_movingSpeed(DEFAULT_SPEED);
         		update_currentModeOfMove(SPIN_RIGHT);
@@ -169,8 +171,10 @@ static THD_FUNCTION(CentralUnit, arg) {
 				}
         		break;
 
+			/**
+			* @brief   Align the robot to the object using the camera and a P regulator
+			*/
         	case ALIGN:
-        		chprintf((BaseSequentialStream *)&SD3, "ALIGN");
         		set_movingSpeed(DEFAULT_SPEED);
         		update_currentModeOfMove(SPIN_ALIGNEMENT);
         		//from alignementMode to analyseMode
@@ -181,7 +185,7 @@ static THD_FUNCTION(CentralUnit, arg) {
         		//from alignementMode to pursuit
 				if(get_regulationCompleted()) {
 					// determine if it is shorter to follow the wall counterclockwise (true) or clockwise (false)
-					if(get_rotationMappingValue() >= THRESHOLD_STEPS_FOR_OPTIMIZED_EXIT) { // must be calibrated, maybe 700 is not the good parameter. must test with the rotation of a certain angle when avalaible
+					if(get_rotationMappingValue() >= THRESHOLD_STEPS_FOR_OPTIMIZED_EXIT) {
 						optimizedExitOnLeft = false;
 					} else {
 						optimizedExitOnLeft = true;
@@ -190,8 +194,10 @@ static THD_FUNCTION(CentralUnit, arg) {
 				}
         		break;
 
+			/**
+			* @brief   Move towards the object and correct its trajectory if the object moves
+			*/
         	case PURSUIT:
-        		chprintf((BaseSequentialStream *)&SD3, "PURSUIT");
         		set_movingSpeed(DEFAULT_SPEED);
         		update_currentModeOfMove(MOVE_STRAIGHT_CORRECT_ALIGNEMENT);
     			if(get_staticFoundLine() == false) {
@@ -209,9 +215,10 @@ static THD_FUNCTION(CentralUnit, arg) {
     			}
         		break;
 
-        	// this mode is made two times
+			/**
+			* @brief   Measure the TOF distance twenty times and make a mean. This mode is made two times
+			*/
         	case MEASURE_TOF:;
-        		chprintf((BaseSequentialStream *)&SD3, "MEASURE_TOF");
         		update_currentModeOfMove(STOP_MOVE);
         		uint8_t counter = 0;
         		do {
@@ -231,14 +238,23 @@ static THD_FUNCTION(CentralUnit, arg) {
         		}
         		break;
 
+			/**
+			* @brief   Spin right of 20 degrees and run again the MEASURE_TOF mode
+			*/
         	case MEASURE_SPIN_RIGHT:
         		rotate_degree_and_update_mode(DEFAULT_SPEED, 20, MEASURE_TOF);
 				break;
 
+			/**
+			* @brief   Spin back of 20 degrees to be in front of the object again
+			*/
         	case MEASURE_SPIN_LEFT:
 				rotate_degree_and_update_mode(DEFAULT_SPEED, -20, PUSH);
         		break;
 
+			/**
+			* @brief   Push the object against the wall
+			*/
         	case PUSH: ;
         		//measuredVale is the distance to the wall
         		int distance_travel = measuredValue - distanceToObject - OBJECT_DIAMETER;
@@ -246,6 +262,9 @@ static THD_FUNCTION(CentralUnit, arg) {
         		move_straight_mm_and_update_mode(DEFAULT_SPEED, distance_travel, ROTATE_BEFORE_FOLLOW);
         		break;
 
+			/**
+			* @brief   Rotate of 90 degrees to expose the poxi sensors to the wall
+			*/
         	case ROTATE_BEFORE_FOLLOW:
         		if(optimizedExitOnLeft) {
         			rotate_degree_and_update_mode(DEFAULT_SPEED, -90, FOLLOW);
@@ -255,6 +274,9 @@ static THD_FUNCTION(CentralUnit, arg) {
         		}
         		break;
 
+			/**
+			* @brief   Follow the wall using proxi sensors, until reaching the exit.
+			*/
         	case FOLLOW: ;
         		set_movingSpeed(FAST_SPEED);
         		uint16_t *prox_values = get_prox_value();
@@ -287,6 +309,9 @@ static THD_FUNCTION(CentralUnit, arg) {
 				}
         		break;
 
+			/**
+			* @brief   Rotate in front of the exit
+			*/
         	case EXIT:
         		if(!optimizedExitOnLeft) {
 					rotate_degree_and_update_mode(DEFAULT_SPEED, -60, PUSH_OUT);
@@ -296,88 +321,29 @@ static THD_FUNCTION(CentralUnit, arg) {
         		}
         		break;
 
+			/**
+			* @brief   Push the object out of the arena
+			*/
         	case PUSH_OUT:
 				move_straight_mm_and_update_mode(DEFAULT_SPEED, EXIT_DISTANCE, RECENTER);
         		break;
 
+			/**
+			* @brief   Retreat back to the center of the arena
+			*/
         	case RECENTER:
 				move_straight_mm_and_update_mode(FAST_SPEED, -(ARENA_RADIUS+EXIT_DISTANCE), ANALYSE);
         		break;
-
-        		// if spin left, angle degree must be negative. if spin right angle degree must be positiv
-        	case ROTATE_TRACKER_TEST:
-				if(!get_trackerIsUsed()) {
-					set_movingSpeed(DEFAULT_SPEED);
-					update_currentModeOfMove(SPIN_RIGHT);
-					trackRotationOfDegree((int16_t)(360 + TRACKING_ERROR * 360));
-				}
-				if(get_trackerIsUsed() && get_trackingFinished()) {
-					currentMode = STOP;
-				}
-				break;
-
-				// if move forward, speed and mm must be positives, if move backwards speed and distance must be negatives
-			case STRAIGHT_TRACKER_TEST:
-				if(!get_trackerIsUsed()) {
-					set_movingSpeed(-DEFAULT_SPEED);
-					update_currentModeOfMove(MOVE_STRAIGHT);
-					trackStraightAdvance((int16_t)(-70 - TRACKING_ERROR * 70));
-				}
-				if(get_trackerIsUsed() && get_trackingFinished()) {
-					currentMode = STOP;
-				}
-				break;
-
-			case TEST_ROTATION_MAPPING:
-				set_rotationMappingIsOn(true);
-				update_currentModeOfMove(SPIN_RIGHT);
-				//determine if it is shorter to follow the wall counterclockwise (true) or clockwise (false)
-				if(get_rotationMappingValue() >= THRESHOLD_STEPS_FOR_OPTIMIZED_EXIT) {
-					optimizedExitOnLeft = false;
-				} else {
-					optimizedExitOnLeft = true;
-				}
-				break;
 
         	default:
         		currentMode = IDLE;
         		break;
         }
 
-//		//from idle to analyseMode
-//		if((get_selector() == 1) && !(currentMode == ALIGN) && !(currentMode == PURSUIT)) {
-//			currentMode = ANALYSE;
-//		}
-//		//from analyseMode to alignementMode
-//		if((currentMode == ANALYSE) && get_staticFoundLine()) {
-//			currentMode = ALIGN;
-//		}
-//		//from alignementMode to analyseMode
-//		if((currentMode == ALIGN) && (!(get_staticFoundLine()))) {
-//        	set_rotationMappingIsOn(true);
-//			currentMode = ANALYSE;
-//		}
-//		//from alignementMode to pursuit
-//		if((currentMode == ALIGN) && (get_regulationCompleted())) {
-//			// determine if it is shorter to follow the wall counterclockwise (true) or clockwise (false)
-//			if(get_rotationMappingValue() >= THRESHOLD_STEPS_FOR_OPTIMIZED_EXIT) { // must be calibrated, maybe 700 is not the good parameter. must test with the rotation of a certain angle when avalaible
-//				optimizedExitOnLeft = false;
-//			} else {
-//				optimizedExitOnLeft = true;
-//			}
-//			currentMode = PURSUIT;
-//		}
-
 		// force stop mode
 		if((get_selector() == 15)) {
 			currentMode = STOP;
 		}
-
-		//////////////////////////////////////////////////////////////testing purposes
-//		if(get_selector() == 1) {
-//			currentMode = MEASURE_TOF;
-//		}
-		//////////////////////////////////////////////////////////////testing purposes
 
         //enable rotationMapping only in analyse and align modes
         if((currentMode == ANALYSE) || (currentMode == ALIGN)) {

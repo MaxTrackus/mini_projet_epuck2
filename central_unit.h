@@ -12,7 +12,7 @@ typedef enum {
 	MEASURE_SPIN_RIGHT,
 	MEASURE_SPIN_LEFT,
 	PUSH,
-	ROTATE_BEFORE_FOLLOW, //////////////////////////////////////////////////////////////////////// test_max_1205 created
+	ROTATE_BEFORE_FOLLOW,
 	FOLLOW,
 	EXIT,
 	PUSH_OUT,
@@ -22,13 +22,10 @@ typedef enum {
 	TEST_ROTATION_MAPPING
 } task_mode;
 
-//start the central unit thread
+
+/**
+* @brief   Init a thread which gather the sensors measurements and updates the modes of move.c accordingly
+*/
 void central_unit_start(void);
-
-void set_mode_with_selector(void);
-void set_straight_move_in_mm(int distance_in_mm);
-
-
-uint32_t degrees_to_motor_step(uint16_t degrees);
 
 #endif /* CENTRAL_UNIT_H */

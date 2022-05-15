@@ -15,7 +15,7 @@
 
 // global use
 static move_mode currentModeOfMove = STOP_MOVE;
-static int movingSpeed = 0; // devrait ?re signed ?
+static int movingSpeed = 0;
 
 // follow mode
 static int16_t leftMotorCorrectionSpeed = 0;

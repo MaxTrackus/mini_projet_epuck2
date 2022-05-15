@@ -28,8 +28,7 @@ bool* get_prox_activation_status(uint16_t prox_detection_threshold);
 uint16_t* get_prox_value(void);
 
 /**
-* @brief   Init a thread which uses the proximity sensors to
-* continuoulsy store every sensor's value inside a buffer
+* @brief   Init a thread which uses the proximity sensors to continuously store every sensor's value inside a buffer
 */
 void read_prox_start(void);
 
