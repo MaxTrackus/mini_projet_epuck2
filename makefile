@@ -3,7 +3,7 @@
 #Simply adapt the lines below to be able to compile
 
 # Define project name here
-PROJECT = CamReg
+PROJECT = TidyUp
 
 #Define path to the e-puck2_main-processor folder
 GLOBAL_PATH = ../lib/e-puck2_main-processor
@@ -19,7 +19,7 @@ CSRC += ./main.c \
 		./move_tracker.c \
 
 #Header folders to include
-INCDIR += 
+INCDIR += ./constants.h \
 
 #Jump to the main Makefile
 include $(GLOBAL_PATH)/Makefile
