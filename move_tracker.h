@@ -26,5 +26,6 @@ void reset_motor_pos_TRACKER(void);
 bool get_trackerIsUsed(void);
 void set_rotationMappingIsOn(bool status);
 int get_rotationMappingValue(void);
+void set_trackerIsUsed(bool status);
 
 #endif /* MOVE_TRACKER_H_ */

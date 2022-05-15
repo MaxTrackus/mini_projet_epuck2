@@ -11,7 +11,6 @@ typedef enum {
 	MEASURE_TOF,
 	MEASURE_SPIN_RIGHT,
 	MEASURE_SPIN_LEFT,
-//	MEASURE,
 	PUSH,
 	ROTATE_BEFORE_FOLLOW, //////////////////////////////////////////////////////////////////////// test_max_1205 created
 	FOLLOW,

@@ -32,7 +32,6 @@ static int rotationMappingValue = 0;
 
 //INTERNAL FUNCTIONS BEGIN
 void check_position(void) {
-	chprintf((BaseSequentialStream *)&SD3, "CHECK");
 	if((right_motor_pos_targetTRACK < 0) && ((int16_t)right_motor_get_pos() < right_motor_pos_targetTRACK)) {
 		currentModeOfTracker = TRACK_NOTHING;
 	}
@@ -91,10 +90,14 @@ void stop_tracker(void) {
 
 // first file that call this function get the tracking finished signal but not the other latecomers.
 bool get_trackingFinished(void) {
-	return trackingFinished;
 	if(trackingFinished) {
 		trackerIsUsed = false;
 	}
+	return trackingFinished;
+}
+
+void set_trackerIsUsed(bool status) {
+	trackerIsUsed = status;
 }
 
 void set_trackerMode(move_tracker_mode mode) {
@@ -133,13 +136,11 @@ void set_rotationMappingIsOn(bool status) {
 	}
 //	status ? (currentModeOfTracker = ROTATION_MAPPING) : (currentModeOfTracker = TRACK_NOTHING);
 	if(status) {
-		chprintf((BaseSequentialStream *)&SD3, "SET");
 		currentModeOfTracker = ROTATION_MAPPING;
 	}
-	else {
-//		chprintf((BaseSequentialStream *)&SD3, "SET");
-		currentModeOfTracker = TRACK_NOTHING;
-	}
+//	else {
+//		currentModeOfTracker = TRACK_NOTHING;
+//	}
 }
 
 int get_rotationMappingValue(void) {

@@ -103,9 +103,11 @@ static THD_FUNCTION(CentralUnit, arg) {
 
         switch(currentMode) {
         	case IDLE:
+        		chprintf((BaseSequentialStream *)&SD3, "IDLE");
         		break;
 
         	case STOP:
+        		chprintf((BaseSequentialStream *)&SD3, "STOP");
         		set_movingSpeed(DEFAULT_SPEED);
         		update_currentModeOfMove(STOP_MOVE);
         		optimizedExitOnLeft = true;
@@ -113,17 +115,20 @@ static THD_FUNCTION(CentralUnit, arg) {
         		break;
 
         	case ANALYSE:
+        		chprintf((BaseSequentialStream *)&SD3, "ANALYSE");
         		set_rotationMappingIsOn(true);
         		set_movingSpeed(DEFAULT_SPEED);
         		update_currentModeOfMove(SPIN_RIGHT);
         		break;
 
         	case ALIGN:
+        		chprintf((BaseSequentialStream *)&SD3, "ALIGN");
         		set_movingSpeed(DEFAULT_SPEED);
         		update_currentModeOfMove(SPIN_ALIGNEMENT);
         		break;
 
         	case PURSUIT:
+        		chprintf((BaseSequentialStream *)&SD3, "PURSUIT");
         		set_movingSpeed(DEFAULT_SPEED);
         		update_currentModeOfMove(MOVE_STRAIGHT_CORRECT_ALIGNEMENT);
     			if(get_staticFoundLine() == false) {
@@ -136,135 +141,89 @@ static THD_FUNCTION(CentralUnit, arg) {
     			}
     			if(get_lineWidth() > (uint16_t)(400)) {
     				update_currentModeOfMove(STOP_MOVE);
+    				distanceToObject = 0;
     				currentMode = MEASURE_TOF;
     			}
         		break;
 
         	// this mode is made two times
         	case MEASURE_TOF:;
+        		chprintf((BaseSequentialStream *)&SD3, "MEASURE_TOF");
+        		update_currentModeOfMove(STOP_MOVE);
         		uint8_t counter = 0;
         		do {
         			measuredValue += VL53L0X_get_dist_mm();
 					counter += 1;
 					chThdSleepMilliseconds(100);
 				} while (counter < 20);
-        		measuredValue = measuredValue/20; //VL53L0X_get_dist_mm(); //gets distance to object
+        		measuredValue = (uint16_t)(measuredValue/20); //VL53L0X_get_dist_mm(); //gets distance to object
         		if(distanceToObject == 0) {
+        			distanceToObject = /*30*/measuredValue;
+        			stop_tracker();
         			currentMode = MEASURE_SPIN_RIGHT;
         		}
         		else {
+        			stop_tracker();
         			currentMode = MEASURE_SPIN_LEFT;
         		}
         		break;
 
         	case MEASURE_SPIN_RIGHT:
+        		chprintf((BaseSequentialStream *)&SD3, "MEASURE_SPIN_RIGHT");
         		///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
         		if(!get_trackerIsUsed()) {
 					set_movingSpeed(DEFAULT_SPEED);
 					update_currentModeOfMove(SPIN_RIGHT);
 					trackRotationOfDegree((int16_t)(20 + TRACKING_ERROR * 20));
 				}
-				if(get_trackerIsUsed() && get_trackingFinished()) {
-					distanceToObject = measuredValue;
-					currentMode = MEASURE_TOF;
+				if(get_trackerIsUsed()) {
+					if(get_trackingFinished()) {
+						currentMode = MEASURE_TOF;
+					}
 				}
 				///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
 				break;
 
         	case MEASURE_SPIN_LEFT:
+        		chprintf((BaseSequentialStream *)&SD3, "MEASURE_SPIN_LEFT");
         		///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
         		if(!get_trackerIsUsed()) {
 					set_movingSpeed(DEFAULT_SPEED);
 					update_currentModeOfMove(SPIN_LEFT);
 					trackRotationOfDegree((int16_t)(-20 - TRACKING_ERROR * 20));
 				}
-				if(get_trackerIsUsed() && get_trackingFinished()) {
-					distanceToObject = measuredValue;
-					currentMode = PUSH;
+				if(get_trackerIsUsed()) {
+					if(get_trackingFinished()) {
+						currentMode = PUSH;
+					}
 				}
 				///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
         		break;
-//        	case MEASURE:
-//        		if (distanceToTravel == 0) {
-//        			set_front_led(1);
-//        			//faire un nouveau mode pour faire uniquement la mesure ? :thinking
-//        			do {
-//        				measurement_average += VL53L0X_get_dist_mm();
-//        				counter += 1;
-//        				chThdSleepMilliseconds(100);
-//        			} while (counter < 20);
-//        			distanceToTravel = measurement_average/20; //VL53L0X_get_dist_mm(); //gets distance to object
-//        			measurement_average = 0;
-//        			counter = 0;
-//        			left_motor_pos_target = 72;
-//        			reset_motor_pos();
-//        			set_movingSpeed(SLOW_SPEED);
-//        			update_currentModeOfMove(SPIN_RIGHT);
-//        		}
-//
-//        		if ((get_left_motor_pos() >= left_motor_pos_target) && (wallFound == false)) {
-//        			update_currentModeOfMove(STOP_MOVE);
-//        			do {
-//						measurement_average += VL53L0X_get_dist_mm();
-//						counter += 1;
-//        				chThdSleepMilliseconds(100);
-//					} while (counter < 20);
-//        			wallFound = true;
-//        			distanceToTravel = (measurement_average/20) - distanceToTravel - OBJECT_DIAMETER/* - WALL_CLEARANCE*/;
-//        			measurement_average = 0;
-//					counter = 0;
-//        		} else if ((wallFound == true) && (wallMeasured == false)) {
-//        			set_front_led(0);
-//        			reset_motor_pos();
-//        			right_motor_pos_target = 72;
-//        			wallMeasured = true;
-//					set_movingSpeed(SLOW_SPEED);
-//					update_currentModeOfMove(SPIN_LEFT);
-//        		}
-//
-//        		if ((get_right_motor_pos() >= right_motor_pos_target) && (wallMeasured == true)) {
-//        			update_currentModeOfMove(STOP);
-//        			left_motor_pos_target = 0;
-//        			right_motor_pos_target = 0;
-//        			wallFound = false;
-//        			wallMeasured = false;
-//        			currentMode = PUSH;
-//        		}
-//        		break;
 
-        	case PUSH:;
+        	case PUSH:
+        		chprintf((BaseSequentialStream *)&SD3, "PUSH");
         		//measuredVale is the distance to the wall
-        		int distance_travel = (measuredValue/20) - distanceToObject - OBJECT_DIAMETER;
+        		volatile int distance_travel = measuredValue - distanceToObject - OBJECT_DIAMETER;
+        		distanceToObject = 0;
         		///////////////////////////////////////////////////////////////////////////////////// advance_mm function
         		if(!get_trackerIsUsed()) {
 					set_movingSpeed(DEFAULT_SPEED);
 					update_currentModeOfMove(MOVE_STRAIGHT);
 					trackStraightAdvance((int16_t)(distance_travel - TRACKING_ERROR * distance_travel));
 				}
-				if(get_trackerIsUsed() && get_trackingFinished()) {
-					currentMode = ROTATE_BEFORE_FOLLOW;
-				}
+        		bool tracker_is_used = get_trackerIsUsed();
+        		bool tracking_finished = get_trackingFinished();
+
+        		if(tracker_is_used) {
+        			if(tracking_finished) {
+        				currentMode = ROTATE_BEFORE_FOLLOW;
+        			}
+        		}
 				///////////////////////////////////////////////////////////////////////////////////// advance_mm function
-//        		if ((distanceToTravel != 0) && (moving == false)) {
-//        			set_straight_move_in_mm(distanceToTravel);
-//       				distanceToTravel = 0;
-//
-//        			moving = true;
-//        			reset_motor_pos();
-//        			set_movingSpeed(DEFAULT_SPEED);
-//        			update_currentModeOfMove(MOVE_STRAIGHT);
-//        		}
-//        		current_motor_pos = get_right_motor_pos();
-//        		if ((current_motor_pos >= right_motor_pos_target)) {
-//        			moving = false;
-//        			left_motor_pos_target = 0;
-//        			right_motor_pos_target = 0;
-//        			update_currentModeOfMove(STOP_MOVE);
-//        			currentMode = ROTATE_BEFORE_FOLLOW;
-//        		}
         		break;
 
         	case ROTATE_BEFORE_FOLLOW:
+        		chprintf((BaseSequentialStream *)&SD3, "ROTATE_BEFORE_FOLLOW");
         		if(optimizedExitOnLeft) {
         			///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
         			if(!get_trackerIsUsed()) {
@@ -321,6 +280,7 @@ static THD_FUNCTION(CentralUnit, arg) {
         		break;
 
         	case FOLLOW: ;
+        		chprintf((BaseSequentialStream *)&SD3, "FOLLOW");
         		set_movingSpeed(FAST_SPEED);
         		uint16_t *prox_values = get_prox_value();
 
@@ -354,6 +314,7 @@ static THD_FUNCTION(CentralUnit, arg) {
         		break;
 
         	case EXIT:
+        		chprintf((BaseSequentialStream *)&SD3, "EXIT");
         		if(!optimizedExitOnLeft) {
         			///////////////////////////////////////////////////////////////////////////////////// rotate_degree function
         			if(!get_trackerIsUsed()) {
@@ -409,6 +370,7 @@ static THD_FUNCTION(CentralUnit, arg) {
         		break;
 
         	case PUSH_OUT:
+        		chprintf((BaseSequentialStream *)&SD3, "PUSH_OUT");
         		///////////////////////////////////////////////////////////////////////////////////// advance_mm function
         		if(!get_trackerIsUsed()) {
 					set_movingSpeed(DEFAULT_SPEED);
@@ -442,6 +404,7 @@ static THD_FUNCTION(CentralUnit, arg) {
         		break;
 
         	case RECENTER:
+        		chprintf((BaseSequentialStream *)&SD3, "RECENTER");
         		///////////////////////////////////////////////////////////////////////////////////// advance_mm function
 				if(!get_trackerIsUsed()) {
 					set_movingSpeed(-DEFAULT_SPEED);
@@ -475,6 +438,7 @@ static THD_FUNCTION(CentralUnit, arg) {
 
         		// if spin left, angle degree must be negative. if spin right angle degree must be positiv
         	case ROTATE_TRACKER_TEST:
+        		chprintf((BaseSequentialStream *)&SD3, "ROTATE_TRACKER_TEST");
 				if(!get_trackerIsUsed()) {
 					set_movingSpeed(DEFAULT_SPEED);
 					update_currentModeOfMove(SPIN_RIGHT);
@@ -487,6 +451,7 @@ static THD_FUNCTION(CentralUnit, arg) {
 
 				// if move forward, speed and mm must be positives, if move backwards speed and distance must be negatives
 			case STRAIGHT_TRACKER_TEST:
+				chprintf((BaseSequentialStream *)&SD3, "STRAIGHT_TRACKER_TEST");
 				if(!get_trackerIsUsed()) {
 					set_movingSpeed(-DEFAULT_SPEED);
 					update_currentModeOfMove(MOVE_STRAIGHT);
@@ -498,6 +463,7 @@ static THD_FUNCTION(CentralUnit, arg) {
 				break;
 
 			case TEST_ROTATION_MAPPING:
+				chprintf((BaseSequentialStream *)&SD3, "TEST_ROTATION_MAPPING");
 				set_rotationMappingIsOn(true);
 				update_currentModeOfMove(SPIN_RIGHT);
 				//determine if it is shorter to follow the wall counterclockwise (true) or clockwise (false)
@@ -513,46 +479,46 @@ static THD_FUNCTION(CentralUnit, arg) {
         		break;
         }
 
-//		//from idle to analyseMode
-//		if((get_selector() == 1) && !(currentMode == ALIGN) && !(currentMode == PURSUIT)) {
-//			currentMode = ANALYSE;
-//		}
-//		//from analyseMode to alignementMode
-//		if((currentMode == ANALYSE) && get_staticFoundLine()) {
-//			currentMode = ALIGN;
-//		}
-//		//from alignementMode to analyseMode
-//		if((currentMode == ALIGN) && (!(get_staticFoundLine()))) {
-//        	set_rotationMappingIsOn(true);
-//			currentMode = ANALYSE;
-//		}
-//		//from alignementMode to pursuit
-//		if((currentMode == ALIGN) && (get_regulationCompleted())) {
-//			// determine if it is shorter to follow the wall counterclockwise (true) or clockwise (false)
-//			if(get_rotationMappingValue() >= THRESHOLD_STEPS_FOR_OPTIMIZED_EXIT) { // must be calibrated, maybe 700 is not the good parameter. must test with the rotation of a certain angle when avalaible
-//				optimizedExitOnLeft = false;
-//			} else {
-//				optimizedExitOnLeft = true;
-//			}
-//			currentMode = PURSUIT;
-//		}
+		//from idle to analyseMode
+		if((get_selector() == 1) && !(currentMode == ALIGN) && !(currentMode == PURSUIT)) {
+			currentMode = ANALYSE;
+		}
+		//from analyseMode to alignementMode
+		if((currentMode == ANALYSE) && get_staticFoundLine()) {
+			currentMode = ALIGN;
+		}
+		//from alignementMode to analyseMode
+		if((currentMode == ALIGN) && (!(get_staticFoundLine()))) {
+        	set_rotationMappingIsOn(true);
+			currentMode = ANALYSE;
+		}
+		//from alignementMode to pursuit
+		if((currentMode == ALIGN) && (get_regulationCompleted())) {
+			// determine if it is shorter to follow the wall counterclockwise (true) or clockwise (false)
+			if(get_rotationMappingValue() >= THRESHOLD_STEPS_FOR_OPTIMIZED_EXIT) { // must be calibrated, maybe 700 is not the good parameter. must test with the rotation of a certain angle when avalaible
+				optimizedExitOnLeft = false;
+			} else {
+				optimizedExitOnLeft = true;
+			}
+			currentMode = PURSUIT;
+		}
 		//stop and idle
 		if((get_selector() == 15)) {
 			currentMode = STOP;
 		}
 
 		//////////////////////////////////////////////////////////////testing purposes
-		if(get_selector() == 1) {
-			currentMode = MEASURE_SPIN_RIGHT;
-		}
+//		if(get_selector() == 1) {
+//			currentMode = MEASURE_TOF;
+//		}
 		//////////////////////////////////////////////////////////////testing purposes
 
         //enable rotationMapping only in analyse and align modes
-//        if((currentMode == ANALYSE) || (currentMode == ALIGN)) {
-//        	set_rotationMappingIsOn(true);
-//        } else {
-//        	set_rotationMappingIsOn(false);
-//        }
+        if((currentMode == ANALYSE) || (currentMode == ALIGN)) {
+        	set_rotationMappingIsOn(true);
+        } else {
+        	set_rotationMappingIsOn(false);
+        }
 
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
@@ -599,10 +565,10 @@ void central_unit_start(void){
 	chThdCreateStatic(waCentralUnit, sizeof(waCentralUnit), NORMALPRIO, CentralUnit, NULL);
 }
 
-void set_straight_move_in_mm(int distance_in_mm) {
-	right_motor_pos_target = (distance_in_mm*NSTEP_ONE_TURN)/(WHEEL_PERIMETER);
-	left_motor_pos_target = (distance_in_mm*NSTEP_ONE_TURN)/(WHEEL_PERIMETER);
-}
+//void set_straight_move_in_mm(int distance_in_mm) {
+//	right_motor_pos_target = (distance_in_mm*NSTEP_ONE_TURN)/(WHEEL_PERIMETER);
+//	left_motor_pos_target = (distance_in_mm*NSTEP_ONE_TURN)/(WHEEL_PERIMETER);
+//}
 
 uint32_t degrees_to_motor_step(uint16_t degrees) {
 	return ((uint32_t)(((DEG2RAD) * degrees * TRACK_WIDTH * NSTEP_ONE_TURN)/(2 * WHEEL_PERIMETER)));
