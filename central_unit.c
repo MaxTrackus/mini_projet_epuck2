@@ -357,8 +357,11 @@ static THD_FUNCTION(CentralUnit, arg) {
     }
 }
 
-// EXTERNAL FUNCTIONS
+/****************************PUBLIC FUNCTIONS*************************************/
+
 void central_unit_start(void){
 	chThdCreateStatic(waCentralUnit, sizeof(waCentralUnit), NORMALPRIO, CentralUnit, NULL);
 }
+
+/**************************END PUBLIC FUNCTIONS***********************************/
 

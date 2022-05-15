@@ -10,6 +10,8 @@
 
 static uint16_t prox_value[NB_PROX_SENSORS];
 
+/****************************PUBLIC FUNCTIONS*************************************/
+
 bool* get_prox_activation_status(uint16_t prox_detection_threshold) {
 
 	static bool prox_activation_status[NB_PROX_SENSORS];
@@ -52,3 +54,5 @@ static THD_FUNCTION(ReadProx, arg) {
 void read_prox_start(void) {
 	chThdCreateStatic(waReadProx, sizeof(waReadProx), NORMALPRIO, ReadProx, NULL);
 }
+
+/**************************END PUBLIC FUNCTIONS***********************************/
