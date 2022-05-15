@@ -1,10 +1,3 @@
-/*
- * move_tracker.h
- *
- *  Created on: 14 mai 2022
- *      Author: m_the
- */
-
 #ifndef MOVE_TRACKER_H_
 #define MOVE_TRACKER_H_
 
