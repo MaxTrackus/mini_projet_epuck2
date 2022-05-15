@@ -31,6 +31,8 @@
 #define ARENA_RADIUS					250 	// [mm]
 #define EXIT_DISTANCE					100		// [mm]
 
+#define NSAMPLE_TOF						20
+
 #define QUARTER_TURN					90
 #define MOTOR_STEP_TO_DEGREES			360 //find other name maybe
 #define	PROX_DETECTION_THRESHOLD		10
@@ -52,7 +54,7 @@
 static bool foundWall = false;
 static bool usingStepCounters = false;
 
-static volatile task_mode currentMode = STOP; // laisse à STOP stp.       MaxTrackus
+static volatile task_mode currentMode = STOP; // laisse ? STOP stp.       MaxTrackus
 static volatile int distanceToTravel = 0;
 static volatile bool wallFound = false;
 static bool wallMeasured = false;
@@ -140,8 +142,8 @@ static THD_FUNCTION(CentralUnit, arg) {
         				measurement_average += VL53L0X_get_dist_mm();
         				counter += 1;
         				chThdSleepMilliseconds(100);
-        			} while (counter < 20);
-        			distanceToTravel = measurement_average/20; //VL53L0X_get_dist_mm(); //gets distance to object
+        			} while (counter < NSAMPLE_TOF);
+        			distanceToTravel = measurement_average/NSAMPLE_TOF; //VL53L0X_get_dist_mm(); //gets distance to object
         			measurement_average = 0;
         			counter = 0;
         			left_motor_pos_target = 72;
@@ -156,9 +158,9 @@ static THD_FUNCTION(CentralUnit, arg) {
 						measurement_average += VL53L0X_get_dist_mm();
 						counter += 1;
         				chThdSleepMilliseconds(100);
-					} while (counter < 20);
+					} while (counter < NSAMPLE_TOF);
         			wallFound = true;
-        			distanceToTravel = (measurement_average/20) - distanceToTravel - OBJECT_DIAMETER/* - WALL_CLEARANCE*/;
+        			distanceToTravel = (measurement_average/NSAMPLE_TOF) - distanceToTravel - OBJECT_DIAMETER/* - WALL_CLEARANCE*/;
         			measurement_average = 0;
 					counter = 0;
         		} else if ((wallFound == true) && (wallMeasured == false)) {
