@@ -263,7 +263,7 @@ static THD_FUNCTION(CentralUnit, arg) {
 
         	case FOLLOW: ;
         		set_movingSpeed(FAST_SPEED);
-        		int *prox_values = get_prox_value();
+        		uint16_t *prox_values = get_prox_value();
 
         		if (optimizedExitOnLeft) {
         			prox_for_follow = PROX_FRONT_RIGHT_49;
