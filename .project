@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>TP4_CamReg</name>
+	<name>TidyUp</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -28,7 +28,7 @@
 		<link>
 			<name>e-puck2_main-processor</name>
 			<type>2</type>
-			<locationURI>PARENT-2-PROJECT_LOC/lib/e-puck2_main-processor</locationURI>
+			<location>C:/Users/m_the/Desktop/mini_projet_epuck2/.dep</location>
 		</link>
 	</linkedResources>
 </projectDescription>
