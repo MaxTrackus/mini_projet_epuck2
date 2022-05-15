@@ -129,18 +129,16 @@ void set_rotationMappingIsOn(bool status) {
 	if((currentModeOfTracker == ROTATION_MAPPING) && !status) {
 		trackerIsUsed = false;
 		left_motor_set_pos(0);
+		rotationMappingValue = 0;
 	}
 	if(!(currentModeOfTracker == ROTATION_MAPPING) && status) {
 		trackerIsUsed = true;
 		left_motor_set_pos(0);
+		rotationMappingValue = 0;
 	}
-//	status ? (currentModeOfTracker = ROTATION_MAPPING) : (currentModeOfTracker = TRACK_NOTHING);
 	if(status) {
 		currentModeOfTracker = ROTATION_MAPPING;
 	}
-//	else {
-//		currentModeOfTracker = TRACK_NOTHING;
-//	}
 }
 
 int get_rotationMappingValue(void) {

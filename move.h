@@ -17,23 +17,26 @@ typedef enum {
 */
 void move_start(void);
 
-bool toggle_boolean(bool x);
-void stopMove(void);
-
-void rotate_left(int speed);
-void rotate_right(int speed);
-void motor_stop(void);
-void avoid_obstacles(int speed, int prox_detection_threshold);
-void move_straight(int speed);
-int motor_speed_protection(int speed);
+/**
+* @brief   Set the speed of rotation or movement of the robot. Constrained by the define MAX_MOTOR_SPEED
+*
+* @param speed			speed in step/second
+*/
 void set_movingSpeed(int speed);
-void update_currentModeOfMove(move_mode mode);
-void reset_motor_pos(void);
-int32_t get_right_motor_pos(void);
-int32_t get_left_motor_pos(void);
 
-// follow mode
-void follow_left_wall_with_speed_correction(int16_t leftSpeedCorrection);
+/**
+* @brief   Set the correct mode of move and update the speed correction for FOLLOW mode
+*
+* @param leftSpeedCorrection			speed added/subtracted to correct trajectory
+*/
+void follow_wall_with_speed_correction(int16_t leftSpeedCorrection);
+
+/**
+* @brief   Set the mode of move. Used by central unit to control movements
+*
+* @param mode			mode of type move_mode
+*/
+void update_currentModeOfMove(move_mode mode);
 
 #endif /* MOVE_H */
 //uint16_t angle_in_degree

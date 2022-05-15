@@ -296,7 +296,7 @@ static THD_FUNCTION(CentralUnit, arg) {
         			foundWall = true;
         		}
 
-        		(optimizedExitOnLeft) ? follow_left_wall_with_speed_correction(-speedCorrection) : follow_left_wall_with_speed_correction(speedCorrection);
+        		(optimizedExitOnLeft) ? follow_wall_with_speed_correction(-speedCorrection) : follow_wall_with_speed_correction(speedCorrection);
 
         		bool *prox_status_table = get_prox_activation_status(PROX_DETECTION_THRESHOLD);
 				if ((prox_status_table[prox_for_follow] == false) && foundWall) {
