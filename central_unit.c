@@ -10,59 +10,85 @@
 #include <epuck1x/utility/utility.h> //used for wait function
 
 #include <central_unit.h>
+#include <constants.h>
 #include <process_image.h>
 #include <move.h>
-#include <pi_regulator.h>
 #include <proxi.h>
+#include <move_tracker.h>
+#include <p_regulator.h>
 
-#define DEFAULT_SPEED					200 // [steps/s]
-#define SLOW_SPEED						50 	// [steps/s]
-#define	OBJECT_DIAMETER					30 	// [mm]	
-#define ERROR_MARGIN					75 	// [mm]
-#define WALL_CLEARANCE					10 	// [mm]
-#define SEC2MSEC						1000  //1000
-#define MAX_MOTOR_SPEED					1100 // [steps/s]
-#define NSTEP_ONE_TURN      			1000 // number of step for 1 turn of the motor
-#define WHEEL_PERIMETER     			130 // [mm]
 
-#define QUARTER_TURN					90
-#define MOTOR_STEP_TO_DEGREES			360 //find other name maybe
-#define	PROX_DETECTION_THRESHOLD		10
 
-//////////////////////////////////////////////////////////////////////// test_max_1205
-#define	SPEED_CORRECTION_SENSIBILITY_OVER_PROXI		2
-#define	GOAL_PROXI_VALUE		100
-
-static bool foundWall = false;
-static bool usingStepCounters = false;
-//////////////////////////////////////////////////////////////////////// test_max_1205
-
-static volatile task_mode currentMode = IDLE;
-//static volatile systime_t currentTime = 0;
-//static volatile uint32_t actionTime = 0;
-static volatile uint16_t distanceToTravel = 0;
-static volatile bool wallFound = false;
-static bool wallMeasured = false;
+// general purpose
+static task_mode currentMode = STOP; // laisse à STOP stp.       MaxTrackus
 static bool optimizedExitOnLeft = true;
-//static uint8_t exitProx = PROX_RIGHT;
 
-static bool moving = false;
-
-static uint32_t	right_motor_pos_target = 0;
-static uint32_t	left_motor_pos_target = 0;
-
+// pursuit mode
 static uint8_t lostLineCounter = 0;
 
-static uint16_t measurement_average = 0;
-static uint8_t counter = 0;
+// measure modes
+static uint16_t measuredValue = 0;
+static uint16_t distanceToObject = 0;
 
+// follow mode
+static bool foundWall = false;
+
+
+
+/***************************INTERNAL FUNCTIONS************************************/
+
+// if spin left, angle must be negative. If spin right, angle must be positive
+void rotate_degree_and_update_mode(int speed, int16_t angle, task_mode nextMode) {
+	if(!get_trackerIsUsed()) {
+		set_movingSpeed(speed);
+		if(angle >= 0) {
+			update_currentModeOfMove(SPIN_RIGHT);
+		}
+		else {
+			update_currentModeOfMove(SPIN_LEFT);
+		}
+		trackRotationOfDegree((int16_t)(angle + TRACKING_ERROR * angle));
+	}
+	if(get_trackerIsUsed()) {
+		if(get_trackingFinished()) {
+			currentMode = nextMode;
+		}
+	}
+}
+
+// if move forward, speed and distance_mm must be positives, if move backwards speed and distance must be negatives
+void move_straight_mm_and_update_mode(int speed, int16_t distance_mm, task_mode nextMode) {
+	if(!get_trackerIsUsed()) {
+		if(distance_mm >= 0) {
+			set_movingSpeed(speed);
+		}
+		else {
+			set_movingSpeed(-speed);
+		}
+		update_currentModeOfMove(MOVE_STRAIGHT);
+		trackStraightAdvance((int16_t)(distance_mm - TRACKING_ERROR * distance_mm));
+	}
+	if(get_trackerIsUsed()) {
+		if(get_trackingFinished()) {
+			currentMode = nextMode;
+		}
+	}
+}
+
+/*************************END INTERNAL FUNCTIONS**********************************/
+
+/**
+* @brief   Thread which gather the sensors measurements and updates the modes of move.c accordingly
+*/
 static THD_WORKING_AREA(waCentralUnit, 1024);
 static THD_FUNCTION(CentralUnit, arg) {
 
     chRegSetThreadName(__FUNCTION__);
     (void)arg;
 
-    volatile systime_t time;
+    systime_t time;
+    uint8_t prox_for_follow;
+    uint8_t prox_for_exit;
 
     while(1){
         time = chVTGetSystemTime();
@@ -71,11 +97,18 @@ static THD_FUNCTION(CentralUnit, arg) {
         currentMode == ANALYSE ? set_body_led(1) : set_body_led(0);
         currentMode == ALIGN ? set_led(LED1, 1) : set_led(LED1, 0);
         currentMode == PURSUIT ? set_led(LED3, 1) : set_led(LED3, 0);
-        currentMode == MEASURE ? set_led(LED5, 1) : set_led(LED5, 0);
+        if((currentMode == MEASURE_TOF) && (currentMode == MEASURE_SPIN_RIGHT) && (currentMode == MEASURE_SPIN_LEFT)) {
+        	set_led(LED5, 1);
+        }
+        else {
+        	set_led(LED5, 0);
+        }
         currentMode == PUSH ? set_led(LED7, 1) : set_led(LED7, 0);
         currentMode == ROTATE_BEFORE_FOLLOW ? set_led(LED1, 1) : set_led(LED1, 0);
         currentMode == FOLLOW ? set_led(LED3, 1) : set_led(LED3, 0);
 		currentMode == EXIT ? set_led(LED5, 1) : set_led(LED5, 0);
+		currentMode == PUSH_OUT ? set_led(LED7, 1) : set_led(LED7, 0);
+		currentMode == RECENTER ? set_led(LED1, 1) : set_led(LED1, 0);
 
         switch(currentMode) {
         	case IDLE:
@@ -85,18 +118,57 @@ static THD_FUNCTION(CentralUnit, arg) {
         		set_movingSpeed(DEFAULT_SPEED);
         		update_currentModeOfMove(STOP_MOVE);
         		optimizedExitOnLeft = true;
+        		stop_tracker();
+        		//from stop to analyseMode
+        		if(get_selector() == 1) {
+        			currentMode = ANALYSE;
+        		}
         		break;
 
+			/**
+			* @brief   Look for the object by spinning infinitely to the right
+			*/
         	case ANALYSE:
+        		set_rotationMappingIsOn(true);
         		set_movingSpeed(DEFAULT_SPEED);
         		update_currentModeOfMove(SPIN_RIGHT);
+        		//from analyseMode to alignementMode
+        		if(get_staticFoundLine()) {
+					currentMode = ALIGN;
+				}
         		break;
 
+			/**
+			* @brief   Align the robot to the object using the camera and a P regulator
+			*/
         	case ALIGN:
         		set_movingSpeed(DEFAULT_SPEED);
         		update_currentModeOfMove(SPIN_ALIGNEMENT);
+        		// if the robot made a complete turn, stop
+        		if(get_rotationMappingValue() >= (int)(((DEG2RAD) * COMPLETE_TURN * TRACK_WIDTH * NSTEP_ONE_TURN)/(2 * WHEEL_PERIMETER))) {
+        			currentMode = STOP;
+        		}
+        		//from alignementMode to analyseMode
+        		if(!get_staticFoundLine()) {
+                	set_rotationMappingIsOn(true);
+        			currentMode = ANALYSE;
+        		}
+        		//from alignementMode to pursuit
+				if(get_regulationCompleted()) {
+					// determine if it is shorter to follow the wall counterclockwise (true) or clockwise (false)
+					if(get_rotationMappingValue() >= THRESHOLD_STEPS_FOR_OPTIMIZED_EXIT) {
+						optimizedExitOnLeft = false;
+					} else {
+						optimizedExitOnLeft = true;
+					}
+					currentMode = PURSUIT;
+				}
         		break;
 
+			/**
+			* @brief   Move towards the object and correct its trajectory if the object moves.
+			* 		   Stops when the object image is large enough
+			*/
         	case PURSUIT:
         		set_movingSpeed(DEFAULT_SPEED);
         		update_currentModeOfMove(MOVE_STRAIGHT_CORRECT_ALIGNEMENT);
@@ -105,181 +177,172 @@ static THD_FUNCTION(CentralUnit, arg) {
     			} else {
     				lostLineCounter = 0;
     			}
-    			if(lostLineCounter == 100) {
+    			if(lostLineCounter == NB_INCREMENTS_LOST_OBJECT) {
     				currentMode = STOP;
     			}
-    			if(get_lineWidth() > (uint16_t)(400)) {
+    			if(get_lineWidth() > (uint16_t)(LARGE_WIDTH_STOP)) {
     				update_currentModeOfMove(STOP_MOVE);
-    				currentMode = MEASURE;
+    				distanceToObject = 0;
+    				currentMode = MEASURE_TOF;
     			}
         		break;
 
-        	case MEASURE:
-        		if (distanceToTravel == 0) {
-        			set_front_led(1);
-//        			chThdSleepMilliseconds(2000);
-        			//faire un nouveau mode pour faire uniquement la mesure ? :thinking
-        			do {
-        				measurement_average += VL53L0X_get_dist_mm();
-        				counter += 1;
-        				chThdSleepMilliseconds(100);
-        			} while (counter < 20);
-        			distanceToTravel = measurement_average/20; //VL53L0X_get_dist_mm(); //gets distance to object
-        			measurement_average = 0;
-        			counter = 0;
-        			left_motor_pos_target = 72;//1295;
-        			reset_motor_pos();
-        			set_movingSpeed(SLOW_SPEED);
-        			update_currentModeOfMove(SPIN_RIGHT);
+			/**
+			* @brief   Measure the TOF distance twenty times and make a mean. This mode is made two times
+			*/
+        	case MEASURE_TOF:;
+        		update_currentModeOfMove(STOP_MOVE);
+        		uint8_t counter = 0;
+        		do {
+        			measuredValue += VL53L0X_get_dist_mm() - TOF_OFFSET; //TOF_OFFSET determined by experimentation
+					counter += 1;
+					chThdSleepMilliseconds(100);
+				} while (counter < NB_TOF_MESURE_MEAN);
+        		measuredValue = (uint16_t)(measuredValue/NB_TOF_MESURE_MEAN); //VL53L0X_get_dist_mm(); //gets distance to object
+        		if(distanceToObject == 0) {
+        			distanceToObject = measuredValue;
+        			stop_tracker();
+        			currentMode = MEASURE_SPIN_RIGHT;
         		}
-
-        		//volatile uint16_t tof = VL53L0X_get_dist_mm();
-
-        		if ((get_left_motor_pos() >= left_motor_pos_target) && (wallFound == false)) {
-        			update_currentModeOfMove(STOP_MOVE);
-        			do {
-						measurement_average += VL53L0X_get_dist_mm();
-						counter += 1;
-        				chThdSleepMilliseconds(100);
-					} while (counter < 20);
-        			wallFound = true;
-        			distanceToTravel = (measurement_average/20) - distanceToTravel - OBJECT_DIAMETER/* - WALL_CLEARANCE*/;
-        			measurement_average = 0;
-					counter = 0;
-        		} else if ((wallFound == true) && (wallMeasured == false)) {
-        			set_front_led(0);
-        			reset_motor_pos();
-        			right_motor_pos_target = 72;//1295;
-        			wallMeasured = true;
-					set_movingSpeed(SLOW_SPEED);
-					update_currentModeOfMove(SPIN_LEFT);
-        		}
-
-        		if ((get_right_motor_pos() >= right_motor_pos_target) && (wallMeasured == true)) {
-        			update_currentModeOfMove(STOP);
-        			left_motor_pos_target = 0;
-        			right_motor_pos_target = 0;
-        			currentMode = PUSH;
+        		else {
+        			stop_tracker();
+        			currentMode = MEASURE_SPIN_LEFT;
         		}
         		break;
 
-        	case PUSH:
-        		if ((distanceToTravel != 0) && (moving == false)) {
-        			set_straight_move_in_mm(distanceToTravel);
-       				distanceToTravel = 0;
+			/**
+			* @brief   Spin right of 20 degrees and run again the MEASURE_TOF mode
+			*/
+        	case MEASURE_SPIN_RIGHT:
+        		rotate_degree_and_update_mode(DEFAULT_SPEED, TWENTY_DEGREES, MEASURE_TOF);
+				break;
 
-        			moving = true;
-        			reset_motor_pos();
-        			set_movingSpeed(DEFAULT_SPEED);
-        			update_currentModeOfMove(MOVE_STRAIGHT);
-        		}
-        		volatile uint32_t current_motor_pos = get_right_motor_pos();
-        		if ((current_motor_pos >= right_motor_pos_target)) {
-        			//////////////////////////////////////////////////////////////////////// test_max_1205 Commented
-//        			update_currentModeOfMove(FOLLOW);
-//        			currentMode = IDLE;
-        			//////////////////////////////////////////////////////////////////////// test_max_1205 Commented
-
-        			//////////////////////////////////////////////////////////////////////// test_max_1205
-        			moving = false;
-        			left_motor_pos_target = 0;
-        			right_motor_pos_target = 0;
-        			update_currentModeOfMove(STOP_MOVE);
-        			currentMode = ROTATE_BEFORE_FOLLOW;
-        			//////////////////////////////////////////////////////////////////////// test_max_1205
-        		}
+			/**
+			* @brief   Spin back of 20 degrees to be in front of the object again
+			*/
+        	case MEASURE_SPIN_LEFT:
+				rotate_degree_and_update_mode(DEFAULT_SPEED, -TWENTY_DEGREES, PUSH);
         		break;
 
-        	//////////////////////////////////////////////////////////////////////// test_max_1205
+			/**
+			* @brief   Push the object against the wall
+			*/
+        	case PUSH: ;
+        		//measuredVale is the distance to the wall
+        		int distance_travel = measuredValue - distanceToObject - OBJECT_DIAMETER;
+        		distanceToObject = 0;
+        		move_straight_mm_and_update_mode(DEFAULT_SPEED, distance_travel, ROTATE_BEFORE_FOLLOW);
+        		break;
+
+			/**
+			* @brief   Rotate of 90 degrees to expose the poxi sensors to the wall
+			*/
         	case ROTATE_BEFORE_FOLLOW:
-        		if (!usingStepCounters) {
-					left_motor_pos_target = 308; // to do a 90 degrees right rotation
-					reset_motor_pos();
-					set_movingSpeed(DEFAULT_SPEED);
-					update_currentModeOfMove(SPIN_RIGHT);
-					usingStepCounters = true;
-				}
-				if ((get_left_motor_pos() >= left_motor_pos_target) && usingStepCounters) {
-					usingStepCounters = false;
-					reset_motor_pos();
-					currentMode = FOLLOW;
-				}
-
+        		if(optimizedExitOnLeft) {
+        			rotate_degree_and_update_mode(DEFAULT_SPEED, -QUARTER_TURN, FOLLOW);
+        		}
+        		else {
+					rotate_degree_and_update_mode(DEFAULT_SPEED, QUARTER_TURN, FOLLOW);
+        		}
         		break;
-        	//////////////////////////////////////////////////////////////////////// test_max_1205
 
+			/**
+			* @brief   Follow the wall using proxi sensors, until reaching the exit.
+			*/
         	case FOLLOW: ;
-//        		if (wallFound == false) {
-//	        		if (actionTime == 0) {
-//	        			//0.6 motor turn for 360 degree turn
-//	        			actionTime = 3020*1.1;//(QUARTER_TURN * DEFAULT_SPEED * SEC2MSEC)/(MOTOR_STEP_TO_DEGREES);
-//	        			set_movingSpeed(DEFAULT_SPEED);
-//	        			currentTime = chVTGetSystemTime();
-//	        			if (optimizedExitOnLeft) {
-//	        				update_currentModeOfMove(SPIN_LEFT); //depends on the flag given by MAX
-//	        				exitProx = PROX_RIGHT;
-//	        			} else {
-//	        				update_currentModeOfMove(SPIN_RIGHT); //depends on the flag given by MAX
-//	        				exitProx = PROX_LEFT;
-//	        			}
-//	        		}
-//
-//	        		if (chVTGetSystemTime() >= (currentTime + MS2ST(actionTime))) {
-//	        			update_currentModeOfMove(STOP);
-//	        			//currentProgramMode = IDLE;
-//	        			actionTime = 0;
-//	        			currentTime = 0;
-//	        			wallFound = true;
-//	        		}
-//	        	} else {
-//	        		bool *prox_status_table = get_prox_activation_status(PROX_DETECTION_THRESHOLD);
-//	        		int *prox_values = get_prox_value();
-//
-//	        		set_movingSpeed(DEFAULT_SPEED);
-//	        		if (prox_status_table[PROX_FRONT_LEFT_49] == true) {
-//	        			update_currentModeOfMove(SPIN_RIGHT);
-//					} else if (prox_status_table[PROX_FRONT_RIGHT_49] == true) {
-//						update_currentModeOfMove(SPIN_LEFT);
-//					}
-//					else if (prox_values[exitProx] <= 10) {
-//						update_currentModeOfMove(STOP);
-//						currentMode = IDLE;
-//					}
-//					else {
-//						update_currentModeOfMove(MOVE_STRAIGHT);
-//					}
-//
-//	        	}
+        		set_movingSpeed(FAST_SPEED);
+        		uint16_t *prox_values = get_prox_value();
 
-        		//////////////////////////////////////////////////////////////////////// test_max_1205
-        		set_movingSpeed(400);
-        		int *prox_values = get_prox_value();
-        		int16_t speedCorrection = (int16_t)(SPEED_CORRECTION_SENSIBILITY_OVER_PROXI * prox_values[PROX_FRONT_LEFT_49]) - (GOAL_PROXI_VALUE * SPEED_CORRECTION_SENSIBILITY_OVER_PROXI);
-        		if((!foundWall) && (prox_values[PROX_FRONT_LEFT_49] <= GOAL_PROXI_VALUE)) {
+        		if (optimizedExitOnLeft) {
+        			prox_for_follow = PROX_FRONT_RIGHT_49;
+        			prox_for_exit = PROX_RIGHT;
+        		} else {
+        			prox_for_follow = PROX_FRONT_LEFT_49;
+        			prox_for_exit = PROX_LEFT;
+        		}
+
+        		int16_t speedCorrection = (int16_t)(SPEED_CORRECTION_SENSIBILITY_OVER_PROXI * prox_values[prox_for_follow]) - (GOAL_PROXI_VALUE * SPEED_CORRECTION_SENSIBILITY_OVER_PROXI);
+        		if((prox_values[prox_for_follow] <= GOAL_PROXI_VALUE)) {
         			speedCorrection = 0;
         		} else {
         			foundWall = true;
         		}
-        		follow_left_wall_with_speed_correction(speedCorrection);
+
+        		(optimizedExitOnLeft) ? follow_wall_with_speed_correction(-speedCorrection) : follow_wall_with_speed_correction(speedCorrection);
 
         		bool *prox_status_table = get_prox_activation_status(PROX_DETECTION_THRESHOLD);
-				if ((prox_status_table[PROX_FRONT_LEFT_49] == false) && foundWall) {
+				if ((prox_status_table[prox_for_follow] == false) && foundWall) {
 					update_currentModeOfMove(MOVE_STRAIGHT);
-					if(prox_status_table[PROX_LEFT] == false) {
+					if(prox_status_table[prox_for_exit] == false) {
 						foundWall = false;
 						update_currentModeOfMove(STOP_MOVE);
 						currentMode = EXIT;
 					}
 				}
-
-//        		chprintf((BaseSequentialStream *)&SD3, "v=%d", prox_status_table[PROX_LEFT]);
-        		//////////////////////////////////////////////////////////////////////// test_max_1205
         		break;
 
+			/**
+			* @brief   Rotate in front of the exit
+			*/
         	case EXIT:
+        		if(!optimizedExitOnLeft) {
+					rotate_degree_and_update_mode(DEFAULT_SPEED, -SIXTY_DEGREES, PUSH_OUT);
+        		}
+        		else {
+					rotate_degree_and_update_mode(DEFAULT_SPEED, SIXTY_DEGREES, PUSH_OUT);
+        		}
         		break;
 
+			/**
+			* @brief   Push the object out of the arena
+			*/
+        	case PUSH_OUT:
+				move_straight_mm_and_update_mode(DEFAULT_SPEED, EXIT_DISTANCE, HIDE_OBJECT_TURN);
+        		break;
+
+			/**
+			* @brief   Turn behind the arena to hide the object
+			*/
+        	case HIDE_OBJECT_TURN:
+        		if(!optimizedExitOnLeft) {
+					rotate_degree_and_update_mode(DEFAULT_SPEED, -QUARTER_TURN, HIDE_OBJECT_PUSH);
+				}
+				else {
+					rotate_degree_and_update_mode(DEFAULT_SPEED, QUARTER_TURN, HIDE_OBJECT_PUSH);
+				}
+        		break;
+
+			/**
+			* @brief   Push the object behind arena
+			*/
+			case HIDE_OBJECT_PUSH:
+				move_straight_mm_and_update_mode(DEFAULT_SPEED, EXIT_DISTANCE, RETREAT_BACK);
+        		break;
+
+			/**
+			* @brief   Move backward towards the exit
+			*/
+			case RETREAT_BACK:
+				move_straight_mm_and_update_mode(DEFAULT_SPEED, -EXIT_DISTANCE, RETREAT_TURN);
+        		break;
+
+			/**
+			* @brief   Turn again in the opposite direction to be align to the exit
+			*/
+			case RETREAT_TURN:
+        		if(!optimizedExitOnLeft) {
+					rotate_degree_and_update_mode(DEFAULT_SPEED, QUARTER_TURN, RECENTER);
+				}
+				else {
+					rotate_degree_and_update_mode(DEFAULT_SPEED, -QUARTER_TURN, RECENTER);
+				}
+        		break;
+
+			/**
+			* @brief   Retreat back to the center of the arena
+			*/
         	case RECENTER:
+				move_straight_mm_and_update_mode(FAST_SPEED, -(ARENA_RADIUS+EXIT_DISTANCE), ANALYSE);
         		break;
 
         	default:
@@ -287,39 +350,10 @@ static THD_FUNCTION(CentralUnit, arg) {
         		break;
         }
 
-		//from idle to analyseMode
-		if((get_selector() == 1) && !(currentMode == ALIGN) && !(currentMode == PURSUIT)) {
-			currentMode = ANALYSE;
-		}
-		//from analyseMode to alignementMode
-		if((currentMode == ANALYSE) && get_staticFoundLine()) {
-			currentMode = ALIGN;
-		}
-		//from alignementMode to analyseMode
-		if((currentMode == ALIGN) && (!(get_staticFoundLine()))) {
-			currentMode = ANALYSE;
-		}
-		//from alignementMode to pursuit
-		if((currentMode == ALIGN) && (get_regulationCompleted())) {
-			if(get_rotationMappingValue() >= 700) { // must be calibrated, maybe 700 is not the good parameter. must test with the rotation of a certain angle when avalaible
-				optimizedExitOnLeft = false;
-			} else {
-				optimizedExitOnLeft = true;
-			}
-			currentMode = PURSUIT;
-		}
-		//stop and idle
-		if((get_selector() == 15)) {
+		// force stop mode
+		if((get_selector() == FIFTEENTH_POS_SELECTOR)) {
 			currentMode = STOP;
 		}
-
-		//////////////////////////////////////////////////////////////////////// test_max_1205
-//		if(get_selector() == 1) {
-//			currentMode = FOLLOW;
-//		}
-		//////////////////////////////////////////////////////////////////////// test_max_1205
-
-//		chprintf((BaseSequentialStream *)&SD3, "v=%d", optimizedExitOnLeft);
 
         //enable rotationMapping only in analyse and align modes
         if((currentMode == ANALYSE) || (currentMode == ALIGN)) {
@@ -333,48 +367,11 @@ static THD_FUNCTION(CentralUnit, arg) {
     }
 }
 
-//This is a function used for testing -> to remove for final 
-void set_mode_with_selector(void) {
-	switch (get_selector()) {
-		case 0:
-			currentMode = IDLE;
-			break;
-		case 1:
-			currentMode = ANALYSE;
-			break;
-		case 2:
-			currentMode = ALIGN;
-			break;
-		case 3:
-			currentMode = PURSUIT;
-			break;
-		case 4:
-			currentMode = MEASURE;
-			break;
-		case 5:
-			currentMode = PUSH;
-			break;
-		case 6:
-			currentMode = FOLLOW;
-			break;
-		case 7:
-			currentMode = EXIT;
-			break;
-		case 8:
-			currentMode = RECENTER;
-			break;
-		default:
-			currentMode = IDLE;
-			break;
-	}
-}
+/****************************PUBLIC FUNCTIONS*************************************/
 
 void central_unit_start(void){
 	chThdCreateStatic(waCentralUnit, sizeof(waCentralUnit), NORMALPRIO, CentralUnit, NULL);
 }
 
-void set_straight_move_in_mm(uint32_t distance_in_mm) {
-	right_motor_pos_target = (distance_in_mm*NSTEP_ONE_TURN)/(WHEEL_PERIMETER);
-	left_motor_pos_target = (distance_in_mm*NSTEP_ONE_TURN)/(WHEEL_PERIMETER);
-}
+/**************************END PUBLIC FUNCTIONS***********************************/
 

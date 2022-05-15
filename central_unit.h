@@ -7,20 +7,26 @@ typedef enum {
 	STOP,
 	ANALYSE,
 	ALIGN,
-	AVOID,
 	PURSUIT,
-	MEASURE,
+	MEASURE_TOF,
+	MEASURE_SPIN_RIGHT,
+	MEASURE_SPIN_LEFT,
 	PUSH,
-	ROTATE_BEFORE_FOLLOW, //////////////////////////////////////////////////////////////////////// test_max_1205 created
+	ROTATE_BEFORE_FOLLOW,
 	FOLLOW,
 	EXIT,
+	PUSH_OUT,
+	HIDE_OBJECT_TURN,
+	HIDE_OBJECT_PUSH,
+	RETREAT_BACK,
+	RETREAT_TURN,
 	RECENTER
 } task_mode;
 
-//start the central unit thread
-void central_unit_start(void);
 
-void set_mode_with_selector(void);
-void set_straight_move_in_mm(uint32_t distance_in_mm);
+/**
+* @brief   Init a thread which gather the sensors measurements and updates the modes of move.c accordingly
+*/
+void central_unit_start(void);
 
 #endif /* CENTRAL_UNIT_H */

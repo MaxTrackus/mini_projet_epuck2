@@ -4,39 +4,39 @@
 //List of the different mode in the move.c file, i.e the different configurations of the motors
 typedef enum {
 	STOP_MOVE,
-	SPIN_RIGHT, //for the analyse mode of central unit
-	SPIN_LEFT, //to be added!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	SPIN_RIGHT,
+	SPIN_LEFT,
 	MOVE_STRAIGHT,
-	SPIN_ALIGNEMENT, //for the align mode of central unit
-	MOVE_STRAIGHT_CORRECT_ALIGNEMENT, //for the pursuit mode of central unit
-	//////////////////////////////////////////////////////////////////////// test_max_1205
-	MOVE_STRAIGHT_WITH_LEFT_MOTOR_CORRECTION,
-	//////////////////////////////////////////////////////////////////////// test_max_1205
+	SPIN_ALIGNEMENT,
+	MOVE_STRAIGHT_CORRECT_ALIGNEMENT,
+	MOVE_STRAIGHT_WITH_CORRECTION,
 } move_mode;
 
+/**
+* @brief   Init a thread which provides the moves needed by central_unit
+*/
 void move_start(void);
-bool toggle_boolean(bool x);
-void stopMove(void);
-void update_currentModeOfMove(move_mode mode);
 
-void rotate_left(int speed);
-void rotate_right(int speed);
-// void rotate_right_in_degrees(int speed, float degrees);
-void motor_stop(void);
-void avoid_obstacles(int speed, int prox_detection_threshold);
-void move_straight(int speed);
-int motor_speed_protection(int speed);
+/**
+* @brief   Set the speed of rotation or movement of the robot. Constrained by the define MAX_MOTOR_SPEED
+*
+* @param speed			speed in step/second
+*/
 void set_movingSpeed(int speed);
-void update_currentModeOfMove(move_mode mode);
-void set_rotationMappingIsOn(bool status);
-int get_rotationMappingValue(void);
-void reset_motor_pos(void);
-uint32_t get_right_motor_pos(void);
-uint32_t get_left_motor_pos(void);
 
-//////////////////////////////////////////////////////////////////////// test_max_1205
-void follow_left_wall_with_speed_correction(int16_t leftSpeedCorrection);
-//////////////////////////////////////////////////////////////////////// test_max_1205
+/**
+* @brief   Set the correct mode of move and update the speed correction for FOLLOW mode
+*
+* @param leftSpeedCorrection			speed added/subtracted to correct trajectory
+*/
+void follow_wall_with_speed_correction(int16_t leftSpeedCorrection);
+
+/**
+* @brief   Set the mode of move. Used by central unit to control movements
+*
+* @param mode			mode of type move_mode
+*/
+void update_currentModeOfMove(move_mode mode);
 
 #endif /* MOVE_H */
 //uint16_t angle_in_degree

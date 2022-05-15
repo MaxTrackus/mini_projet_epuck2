@@ -15,13 +15,15 @@
 #include <sensors/proximity.h>
 #include <sensors/VL53L0X/VL53L0X.h>
 
-
 #include <main.h>
 #include <central_unit.h>
 #include <process_image.h>
 #include <move.h>
-#include <pi_regulator.h>
 #include <proxi.h>
+#include <move_tracker.h>
+#include <p_regulator.h>
+
+
 
 messagebus_t bus;
 MUTEX_DECL(bus_lock);
@@ -33,7 +35,8 @@ void SendUint8ToComputer(uint8_t* data, uint16_t size)
 	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)&size, sizeof(uint16_t));
 	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)data, size);
 
-//    chprintf((BaseSequentialStream *)&SD3, "pos=%d", get_line_position());
+	//TUTO how to print in shell
+//   chprintf((BaseSequentialStream *)&SD3, "pos=%d", get_line_position());
 }
 
 static void serial_start(void)
@@ -67,8 +70,6 @@ int main(void)
 	motors_init();
 	//inits the proximity sensors
     proximity_start();
-//    //start SPI communication
-//    spi_comm_start();
     //starts the TOF thread
     VL53L0X_start(); // a voir si on veut pas le mettre dans central unit avec thd stop...
     //starts the serial communication
@@ -81,14 +82,15 @@ int main(void)
     read_prox_start();
 
 	//stars the threads for the pi regulator and the processing of the image
-	pi_regulator_start();
+	p_regulator_start();
 	process_image_start();
 	move_start();
 	central_unit_start();
+	move_tracker_start();
 
     /* Infinite loop. */
     while (1) {
-    	//waits 1 second
+    	//waits 1 second for the init to finish
         chThdSleepMilliseconds(1000);
     }
 }

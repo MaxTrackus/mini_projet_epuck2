@@ -5,12 +5,13 @@
 
 #include <camera/po8030.h>
 
-#include <main.h> // pour les defines mais c'est tout pas censé normalement
 #include <process_image.h>
+#include <constants.h>
+
 
 
 static float distance_cm = 0;
-static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//middle
+static uint16_t line_position = IMAGE_BUFFER_SIZE/2;
 static uint16_t lineWidth = 0;
 
 static bool staticFoundLine = false;
@@ -18,10 +19,16 @@ static bool staticFoundLine = false;
 //semaphore
 static BSEMAPHORE_DECL(image_ready_sem, TRUE);
 
-/*
- *  Returns the line's width extracted from the image buffer given
- *  Returns 0 if line not found
- */
+/***************************INTERNAL FUNCTIONS************************************/
+
+/**
+* @brief   Compute the width of the object using the image buffer.
+* 		   First it search a slope begin, then a slope end
+*
+* @param buffer			Address of a buffer of uint8_t
+*
+* @return			object width in pixels
+*/
 uint16_t extract_line_width(uint8_t *buffer){
 
 	uint16_t i = 0, begin = 0, end = 0, width = 0;
@@ -92,7 +99,7 @@ uint16_t extract_line_width(uint8_t *buffer){
 		staticFoundLine = false;
 	}else{
 		last_width = width = (end - begin);
-		line_position = (begin + end)/2; //gives the line position.
+		line_position = (begin + end)/2;
 		staticFoundLine = true;
 	}
 
@@ -103,6 +110,8 @@ uint16_t extract_line_width(uint8_t *buffer){
 		return width;
 	}
 }
+
+/*************************END INTERNAL FUNCTIONS**********************************/
 
 static THD_WORKING_AREA(waCaptureImage, 256);
 static THD_FUNCTION(CaptureImage, arg) {
@@ -159,6 +168,7 @@ static THD_FUNCTION(ProcessImage, arg) {
 			distance_cm = PXTOCM/lineWidth;
 		}
 
+		// only for debugging
 		if(send_to_computer){
 			//sends to the computer the image
 //			SendUint8ToComputer(image, IMAGE_BUFFER_SIZE);
@@ -169,6 +179,8 @@ static THD_FUNCTION(ProcessImage, arg) {
     }
 }
 
+/****************************PUBLIC FUNCTIONS*************************************/
+
 uint16_t get_lineWidth(void) {
 	return lineWidth;
 }
@@ -177,11 +189,7 @@ bool get_staticFoundLine(void) {
 	return staticFoundLine;
 }
 
-float get_distance_cm(void){
-	return distance_cm;
-}
-
-uint16_t get_line_position(void){
+uint16_t get_line_position(void) {
 	return line_position;
 }
 
@@ -189,3 +197,6 @@ void process_image_start(void){
 	chThdCreateStatic(waProcessImage, sizeof(waProcessImage), NORMALPRIO, ProcessImage, NULL);
 	chThdCreateStatic(waCaptureImage, sizeof(waCaptureImage), NORMALPRIO, CaptureImage, NULL);
 }
+
+/**************************END PUBLIC FUNCTIONS***********************************/
+
